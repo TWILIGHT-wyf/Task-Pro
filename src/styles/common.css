@@ -1,0 +1,102 @@
+/* Global reset to prevent unexpected scrollbars (remove default body margin, ensure full-height layout and predictable box-sizing) */
+html, body, #app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+:root{
+  --bg-dark-1: #0f1724;
+  --bg-dark-2: #07101a;
+  --card-bg-from: #ffffff;
+  --card-bg-to: #fbfdff;
+  --accent: #409eff;
+  --accent-2: #2b90ff;
+  --muted: #6b7280;
+  --text: #0b1220;
+  --danger: #e11d48;
+}
+
+/* 通用页面布局 */
+.page-center {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+/* 卡片基类 */
+.card {
+  background: linear-gradient(180deg,var(--card-bg-from),var(--card-bg-to));
+  border-radius: 12px;
+  padding: 22px;
+  box-shadow: 0 8px 30px rgba(2,6,23,0.12);
+  color: var(--text);
+}
+
+/* 品牌区 */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.logo-mark {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(135deg, #ff8a00, #ff3d00);
+  box-shadow: 0 6px 16px rgba(255, 77, 0, 0.12);
+}
+.title { font-size:18px; font-weight:700; color:var(--text); }
+
+/* 表单统一 */
+.form { display: grid; gap: 12px; }
+.field input{
+  width:100%; padding:10px 12px; border-radius:8px; border:1px solid #e6e9ef; background:#fff; box-sizing:border-box; font-size:14px; color:var(--text); transition: border-color .15s ease, box-shadow .15s ease;
+}
+.field input::placeholder{ color:#9aa4b2; }
+.field input:focus{ outline:none; border-color:var(--accent); box-shadow:0 6px 18px rgba(64,158,255,0.12); }
+
+/* 隐藏用于无障碍的标签 */
+.sr {
+  position: absolute !important;
+  left: -9999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+/* 操作区与按钮 */
+.actions{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:6px; }
+.agree{ display:inline-flex; align-items:center; gap:8px; font-size:13px; color:var(--muted); }
+.btn {
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  color: #fff;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  box-shadow: 0 6px 18px rgba(43, 144, 255, 0.14);
+}
+.btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* 提示与错误 */
+.hint, .note{ font-size:13px; color:var(--muted); }
+.message, .error{ color:var(--danger); font-size:13px; margin-top:6px; }

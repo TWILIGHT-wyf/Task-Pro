@@ -1,6 +1,6 @@
 <template>
   <div class="login-page" @keydown.enter.prevent="submit">
-    <div class="login-card" role="form" aria-label="登录表单">
+  <div class="login-card card" role="form" aria-label="登录表单">
       <div class="brand">
         <div class="title">商城后台管理系统</div>
       </div>
@@ -28,7 +28,7 @@
         </div>
 
         <p class="error" v-if="error">{{ error }}</p>
-        <p class="hint">没有账号？ <router-link to="/register">去注册</router-link></p>
+  <p class="hint">没有账号？ <router-link to="/register">去注册</router-link></p>
       </form>
 
       <footer class="note">使用 demo 账号测试：demo / demo</footer>
@@ -79,55 +79,39 @@ async function submit() {
 
 <style scoped>
 .login-page {
-  min-height: 100vh;
+  height: 100%;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(180deg,#0f1724 0%, #0a1220 100%);
+  background: linear-gradient(180deg, #f5f8fb, #ffffff);
   padding: 20px;
   box-sizing: border-box;
   font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
 }
 
-/* 卡片 */
+
+
 .login-card {
-  width: 380px;
-  max-width: 94%;
-  background: linear-gradient(180deg,#ffffff,#fbfdff);
+  width: 420px;
+  max-width: 96%;
+  background: linear-gradient(180deg, #ffffff, #fbfdff);
   border-radius: 12px;
-  padding: 22px;
-  box-shadow: 0 8px 30px rgba(2,6,23,0.12);
+  padding: 24px;
+  box-shadow: 0 10px 36px rgba(2, 6, 23, 0.12);
   color: #0b1220;
 }
 
-/* 品牌区 */
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-.logo-mark {
-  width: 48px;
-  height: 48px;
-  background: linear-gradient(135deg,#ff8a00,#ff3d00);
-  color: #fff;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  font-size: 18px;
-  box-shadow: 0 6px 16px rgba(255,77,0,0.12);
-}
 .title {
   font-size: 18px;
   font-weight: 700;
-  color: #0f1724;
 }
 
-/* 表单 */
-.form { display: grid; gap: 12px; }
+/* 表单统一样式，和 RegisterView 保持一致 */
+.form {
+  display: grid;
+  gap: 12px;
+}
 .field input {
   width: 100%;
   padding: 10px 12px;
@@ -139,25 +123,22 @@ async function submit() {
   color: #0b1220;
   transition: border-color .15s ease, box-shadow .15s ease;
 }
-.field input::placeholder { color: #9aa4b2; }
+.field input::placeholder {
+  color: #9aa4b2;
+}
 .field input:focus {
   outline: none;
-  border-color: #409eff;
-  box-shadow: 0 6px 18px rgba(64,158,255,0.12);
+  border-color: #34d399;
+  box-shadow: 0 6px 18px rgba(52, 211, 153, 0.08);
 }
-
-/* 无障碍隐藏标签 */
-.sr { position: absolute !important; left: -9999px; top: auto; width: 1px; height: 1px; overflow: hidden; }
-
-/* 操作行 */
 .actions {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-top: 4px;
+  margin-top: 6px;
 }
-.remember {
+.agree {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -165,31 +146,23 @@ async function submit() {
   color: #6b7280;
 }
 .btn {
-  background: linear-gradient(90deg,#409eff,#2b90ff);
+  background: linear-gradient(90deg, #10b981, #06b6d4);
   color: #fff;
   border: none;
   padding: 10px 16px;
   border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
-  box-shadow: 0 6px 18px rgba(43,144,255,0.14);
+  box-shadow: 0 6px 18px rgba(6, 182, 212, 0.12);
 }
-.btn:disabled { opacity: 0.7; cursor: not-allowed; }
-
-/* 错误信息 */
-.error {
-  color: #e11d48;
-  font-size: 13px;
-  margin-top: 6px;
+.btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
-/* 底部说明 */
-.note {
-  margin-top: 14px;
-  font-size: 12px;
-  color: #6b7280;
-  text-align: center;
-}
+
+.hint a { color: inherit; text-decoration: none; cursor: pointer; }
+.hint a:hover { text-decoration: underline; }
 
 /* 响应式 */
 /* @media (max-width: 420px) {

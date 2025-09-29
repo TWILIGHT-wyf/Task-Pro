@@ -63,7 +63,7 @@ function abbrev(name) {
   --sidebar-accent: #1f2933;
   --active-bg: #409eff;
   --text: #e6eef6;
-  --muted: rgba(255,255,255,0.6);
+  --muted: rgba(255, 255, 255, 0.6);
 }
 
 .layout {
@@ -76,12 +76,12 @@ function abbrev(name) {
 /* 侧栏 */
 .sidebar {
   width: 240px;
-  background: linear-gradient(180deg,var(--sidebar-bg), var(--sidebar-accent));
+  background: linear-gradient(180deg, var(--sidebar-bg), var(--sidebar-accent));
   color: var(--text);
   display: flex;
   flex-direction: column;
   transition: width 200ms ease;
-  box-shadow: 2px 0 8px rgba(0,0,0,0.12);
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.12);
 }
 .sidebar.collapsed {
   width: 72px;
@@ -103,7 +103,7 @@ function abbrev(name) {
   gap: 10px;
 }
 .logo-mark {
-  background: linear-gradient(135deg,#ff8a00,#ff3d00);
+  background: linear-gradient(135deg, #ff8a00, #ff3d00);
   color: #fff;
   padding: 6px 8px;
   border-radius: 6px;

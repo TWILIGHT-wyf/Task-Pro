@@ -1,6 +1,6 @@
 <template>
   <div class="register-page" @keydown.enter.prevent="submit">
-    <div class="register-card" role="form" aria-label="注册表单">
+  <div class="register-card card" role="form" aria-label="注册表单">
       <div class="brand">
 
         <div class="title">创建账号</div>
@@ -37,7 +37,7 @@
 
         <div class="actions">
           <label class="agree">
-            <input type="checkbox" name="agree" />
+            <input type="checkbox" name="agree" v-model="form.agree" />
             我已阅读并同意 服务条款
           </label>
           <button class="btn" type="submit" :disabled="loading" @click="submit">
@@ -73,65 +73,45 @@ function validateEmail(email) {
   const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   return re.test(email)
 }
-// 密码：至少8位，且包含字母和数字
-function validatePassword(pwd) {
-  const re = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&]{8,}$/
-  return re.test(pwd)
-}
 
 async function submit() {
   message.value = ''
-  const { username, password, email, confirm, agree } = form
-  if (agree) {
-    message.value = '请先同意服务条款'
-    return
-  }
-   if (!validateEmail(email)) {
-    message.value = '邮箱格式不正确'
-    return
-  }
-
-  if (!validatePassword(password)) {
-    message.value = '密码至少 8 位，且包含字母和数字'
-    return
-  }
-
-  // 基本校验
-  if (!username || !email || !password || !confirm) {
-    message.value = '请填写完整信息'
-    return
-  }
-  if (password !== confirm) {
-    message.value = '两次密码不一致'
-    return
-  }
+  if (!form.username) { message.value = '请输入用户名'; return }
+  if (!form.email || !validateEmail(form.email)) { message.value = '请输入有效的邮箱地址'; return }
+  if (!form.password || form.password.length < 8) { message.value = '密码至少 8 位'; return }
+  if (form.password !== form.confirm) { message.value = '两次密码不一致'; return }
+  if (!form.agree) { message.value = '请同意服务条款'; return }
 
   loading.value = true
   try {
-    const res = await axios.post('/api/register', { username, email, password, confirm })
-    if (res.data?.code === 0) {
-      router.push('/login')
-    } else {
-      message.value = res.data?.message || '注册失败'
+    const payload = {
+      username: form.username,
+      email: form.email,
+      password: form.password
     }
-  } catch (e) {
-    console.error(e)
-    message.value = '网络或服务器错误'
+    const res = await axios.post('/api/register', payload)
+    if (res?.data?.code === 0) {
+      message.value = '注册成功，正在跳转到登录页…'
+      setTimeout(() => router.push('/login'), 800)
+    } else {
+      message.value = res?.data?.message || '注册失败'
+    }
+  } catch (err) {
+    message.value = err?.response?.data?.message || err.message || '网络错误'
   } finally {
     loading.value = false
   }
 }
-
-
 </script>
 
 <style scoped>
 .register-page {
-  min-height: 100vh;
+  height: 100%;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(180deg,#0f1724 0%, #07101a 100%);
+  background: linear-gradient(180deg, #f5f8fb, #ffffff);
   padding: 20px;
   box-sizing: border-box;
   font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
@@ -140,10 +120,10 @@ async function submit() {
 .register-card {
   width: 420px;
   max-width: 96%;
-  background: linear-gradient(180deg,#ffffff,#fbfdff);
+  background: linear-gradient(180deg, #ffffff, #fbfdff);
   border-radius: 12px;
   padding: 24px;
-  box-shadow: 0 10px 36px rgba(2,6,23,0.12);
+  box-shadow: 0 10px 36px rgba(2, 6, 23, 0.12);
   color: #0b1220;
 }
 
@@ -157,7 +137,7 @@ async function submit() {
 .logo-mark {
   width: 50px;
   height: 50px;
-  background: linear-gradient(135deg,#22c1c3,#fdbb2d);
+  background: linear-gradient(135deg, #22c1c3, #fdbb2d);
   color: #fff;
   border-radius: 10px;
   display: flex;
@@ -165,7 +145,7 @@ async function submit() {
   justify-content: center;
   font-weight: 800;
   font-size: 18px;
-  box-shadow: 0 6px 16px rgba(34,193,195,0.12);
+  box-shadow: 0 6px 16px rgba(34, 193, 195, 0.12);
 }
 .title {
   font-size: 18px;
@@ -174,7 +154,10 @@ async function submit() {
 }
 
 /* 表单 */
-.form { display: grid; gap: 12px; }
+.form {
+  display: grid;
+  gap: 12px;
+}
 .field input {
   width: 100%;
   padding: 10px 12px;
@@ -212,16 +195,19 @@ async function submit() {
   color: #6b7280;
 }
 .btn {
-  background: linear-gradient(90deg,#10b981,#06b6d4);
+  background: linear-gradient(90deg, #10b981, #06b6d4);
   color: #fff;
   border: none;
   padding: 10px 16px;
   border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
-  box-shadow: 0 6px 18px rgba(6,182,212,0.12);
+  box-shadow: 0 6px 18px rgba(6, 182, 212, 0.12);
 }
-.btn:disabled { opacity: 0.7; cursor: not-allowed; }
+.btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
 
 /* 辅助文本 */
 .hint {
