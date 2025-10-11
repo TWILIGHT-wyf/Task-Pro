@@ -1,13 +1,21 @@
 <template>
   <div class="import-export">
-    <input type="file" ref="fileInput" accept=".csv,.xlsx,.json" style="display: none" @change="handleFileChange">
-    <button class="import-btn" @click="triggerImport">导入</button>
+    <input
+      type="file"
+      ref="fileInput"
+      accept=".csv,.xlsx,.json"
+      style="display: none"
+      @change="handleFileChange"
+    >
+    <button class="btn btn-import" @click="triggerImport">导入
+    </button>
     <select v-model="selectedFormat" class="format-select">
       <option value="csv">CSV</option>
       <option value="xlsx">Excel</option>
       <option value="json">JSON</option>
     </select>
-    <button class="export-btn" @click="handleExport">导出</button>
+    <button class="btn btn-export" @click="handleExport">导出
+    </button>
   </div>
 </template>
 
@@ -69,28 +77,76 @@ const handleExport = () => {
 <style lang="scss" scoped>
 .import-export {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   align-items: center;
+}
 
-  .import-btn, .export-btn {
-    padding: 10px 20px;
-    background-color: #6f42c1;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
+.btn {
+  padding: 6px 14px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+
+  span {
     font-size: 14px;
+  }
+
+  &.btn-import {
+    background: #fff;
+    color: #6366f1;
+    border-color: #6366f1;
 
     &:hover {
-      background-color: #5a359a;
+      background: #eef2ff;
+      border-color: #4f46e5;
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
     }
   }
 
-  .format-select {
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
+  &.btn-export {
+    background: #fff;
+    color: #8b5cf6;
+    border-color: #8b5cf6;
+
+    &:hover {
+      background: #f5f3ff;
+      border-color: #7c3aed;
+      box-shadow: 0 2px 8px rgba(139, 92, 246, 0.2);
+    }
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
+}
+
+.format-select {
+  padding: 6px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #374151;
+  background: #f9fafb;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:focus {
+    outline: none;
+    border-color: #10b981;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+  }
+
+  &:hover {
+    border-color: #d1d5db;
+    background: #fff;
   }
 }
 </style>

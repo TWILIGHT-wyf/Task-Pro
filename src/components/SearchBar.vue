@@ -1,8 +1,17 @@
 <template>
   <div class="search-bar">
-      <input type="text" placeholder="搜索分类名称" class="search-input" v-model="keyword" @key.enter="handleSearch">
-      <button class="search-btn" @click="handleSearch">搜索</button>
+    <div class="search-input-wrapper">
+      <span class="search-icon">🔍</span>
+      <input
+        type="text"
+        placeholder="搜索分类名称..."
+        class="search-input"
+        v-model="keyword"
+        @keyup.enter="handleSearch"
+      >
     </div>
+    <button class="search-btn" @click="handleSearch">搜索</button>
+  </div>
 </template>
 
 <script setup>
@@ -22,30 +31,70 @@ watch(keyword, (newVal) => {
 <style lang="scss" scoped>
 .search-bar {
   display: flex;
-  margin-bottom: 20px;
   gap: 10px;
+  background: #fff;
+  padding: 12px;
+  border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(2, 6, 23, 0.06);
+  align-items: center;
+}
 
-  .search-input {
-    flex: 1;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
+.search-input-wrapper {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  .search-icon {
+    position: absolute;
+    left: 12px;
+    font-size: 16px;
+    color: #9ca3af;
+    pointer-events: none;
   }
 
-  .search-btn {
-    padding: 10px 20px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
+  .search-input {
+    width: 100%;
+    padding: 10px 12px 10px 38px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
     font-size: 14px;
+    color: #374151;
+    transition: all 0.2s ease;
+    background: #f9fafb;
 
-    &:hover {
-      background-color: #0056b3;
+    &::placeholder {
+      color: #9ca3af;
+    }
+
+    &:focus {
+      outline: none;
+      border-color: #10b981;
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
     }
   }
 }
 
+.search-btn {
+  padding: 10px 24px;
+  background: #10b981;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+
+  &:hover {
+    background: #059669;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
+}
 </style>

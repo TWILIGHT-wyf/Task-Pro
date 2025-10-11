@@ -1,28 +1,44 @@
 
 <template>
-  <div class="categories-container">
+  <div class="categories-page">
+    <!-- 页面头部 -->
+    <header class="page-header">
+      <div class="header-left">
+        <h1 class="page-title">分类管理</h1>
+        <div class="subtitle">商品分类管理 — 分类列表</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-primary" @click="isShow = true, isEditMode = false">
+          <span>➕</span> 添加分类
+        </button>
+      </div>
+    </header>
+
     <!-- 搜索栏 -->
-    <SearchBar @search="handleSearch">
-    </SearchBar>
+    <div class="search-section">
+      <SearchBar @search="handleSearch"></SearchBar>
+    </div>
 
     <!-- 操作栏 -->
     <div class="action-bar">
-      <button class="add-btn" @click=" isShow = true , isEditMode = false ">添加分类</button>
-      <button class="batch-delete-btn" @click="handleBatchDelete">批量删除</button>
-      <button class="batch-enable-btn" @click="handleBatchEnable(1)">批量启用</button>
-      <button class="batch-disable-btn" @click="handleBatchEnable(0)">批量禁用</button>
-      <ImportExport
-      @import="handleImport"
-      @export="handleExport">
-      </ImportExport>
+      <div class="action-group">
+        <button class="btn btn-danger-outline btn-small" @click="handleBatchDelete">批量删除</button>
+        <button class="btn btn-success-outline btn-small" @click="handleBatchEnable(1)">批量启用</button>
+        <button class="btn btn-secondary-outline btn-small" @click="handleBatchEnable(0)">批量禁用</button>
+      </div>
+      <div class="action-right">
+        <ImportExport @import="handleImport" @export="handleExport"></ImportExport>
+      </div>
     </div>
 
     <!-- 分类列表 -->
-    <div class="categories-table">
-      <table>
+    <div class="table-card">
+      <table class="data-table">
         <thead>
           <tr>
-            <th><input type="checkbox" class="select-all" :checked="isAllSelected" @change="handleSelect"></th>
+            <th class="th-checkbox">
+              <input type="checkbox" class="checkbox" :checked="isAllSelected" @change="handleSelect">
+            </th>
             <th>ID</th>
             <th>分类名称</th>
             <th>父分类</th>
@@ -33,28 +49,45 @@
             <th>描述</th>
             <th>自定义属性</th>
             <th>创建时间</th>
-            <th>操作</th>
+            <th class="th-actions">操作</th>
           </tr>
         </thead>
-        <tbody v-for="{ name,sort,productCount,description,customAttrs,createTime,id,icon,status,parentId } in categories" :key="id">
-          <tr>
-            <td><input type="checkbox" :checked="selectedId.includes(id)" @change="select(id)"></td>
-            <td>{{ id }}</td>
-            <td class="category-name">{{ name }}</td>
-            <td>{{ parentId ? categories.find(item => item.id === parentId)?.name : '-' }}</td>
-            <td><span class="drag-handle">⋮⋮</span> {{ sort }}</td>
-            <td><span :class="status === 1 ? 'status-enabled' : 'status-disabled'">{{ status === 1 ? '启用' : '未启用'}}</span></td>
-            <td>
-              <div v-if="iconLoading[id]" class="icon-loading">加载中...</div>
+        <tbody>
+          <tr v-for="{ name,sort,productCount,description,customAttrs,createTime,id,icon,status,parentId } in categories" :key="id" class="table-row">
+            <td class="td-checkbox">
+              <input type="checkbox" class="checkbox" :checked="selectedId.includes(id)" @change="select(id)">
+            </td>
+            <td class="td-id">{{ id }}</td>
+            <td class="td-name">
+              <span class="name-text">{{ name }}</span>
+            </td>
+            <td class="td-parent">{{ parentId ? categories.find(item => item.id === parentId)?.name : '-' }}</td>
+            <td class="td-sort">
+              <span class="drag-handle">⋮⋮</span>
+              <span class="sort-value">{{ sort }}</span>
+            </td>
+            <td class="td-status">
+              <span :class="['status-badge', status === 1 ? 'status-enabled' : 'status-disabled']">
+                {{ status === 1 ? '启用' : '未启用'}}
+              </span>
+            </td>
+            <td class="td-icon">
+              <div v-if="iconLoading[id]" class="icon-loading">
+                <span class="loading-spinner">⏳</span>
+              </div>
               <img v-else :src="icon" alt="图标" class="category-icon" @load="iconLoading[id] = false" @error="iconLoading[id] = false">
             </td>
-            <td>{{ productCount }}</td>
-            <td>{{ description }}</td>
-            <td><span class="custom-attr" v-for="atter in customAttrs" :key="atter">{{ atter }}</span></td>
-            <td>{{ createTime }}</td>
-            <td>
-              <button class="edit-btn" @click="handleEdit(id)">编辑</button>
-              <button class="delete-btn" @click="handleDelete(id)">删除</button>
+            <td class="td-count">
+              <span class="count-badge">{{ productCount }}</span>
+            </td>
+            <td class="td-desc">{{ description || '-' }}</td>
+            <td class="td-attrs">
+              <span class="custom-attr" v-for="atter in customAttrs" :key="atter">{{ atter }}</span>
+            </td>
+            <td class="td-time">{{ createTime }}</td>
+            <td class="td-actions">
+              <button class="btn-action btn-edit" @click="handleEdit(id)">编辑</button>
+              <button class="btn-action btn-delete" @click="handleDelete(id)">删除</button>
             </td>
           </tr>
         </tbody>
@@ -62,13 +95,15 @@
     </div>
 
     <!-- 分页 -->
-    <CustomPagination
-    :currentPage="currentPage"
-    :totalPages="totalPages"
-    @Prev="handlePrevPage"
-    @Next="handleNextPage "
-    >
-    </CustomPagination>
+    <div class="pagination-section">
+      <CustomPagination
+        :currentPage="currentPage"
+        :totalPages="totalPages"
+        @Prev="handlePrevPage"
+        @Next="handleNextPage"
+      >
+      </CustomPagination>
+    </div>
   </div>
 
   <AddCategoryModal
@@ -306,218 +341,374 @@ const handleExport = async (format) => {
 </script>
 
 <style lang="scss" scoped>
-.categories-container {
-  padding: 20px;
-  background-color: #f5f5f5;
+// 页面容器
+.categories-page {
+  display: flex;
+  flex-direction: column;
+  padding: 18px;
+  box-sizing: border-box;
   height: 100%;
   min-height: 0;
+  background: #f8f9fa;
 }
 
-
-
-.action-bar {
-  margin-bottom: 20px;
+// 页面头部
+.page-header {
   display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
 
-  .add-btn {
-    padding: 10px 20px;
-    background-color: #28a745;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
+.header-left {
+  display: flex;
+  flex-direction: column;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.subtitle {
+  color: #9aa4b2;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+// 按钮样式（与仪表盘一致）
+.btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  &.btn-small {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+
+  &.btn-primary {
+    background: #10b981;
+    color: #fff;
+    border-color: rgba(16, 185, 129, 0.9);
 
     &:hover {
-      background-color: #218838;
+      background: #059669;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
     }
   }
 
-  .batch-delete-btn {
-    padding: 10px 20px;
-    background-color: #dc3545;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
+  &.btn-danger-outline {
+    background: #fff;
+    color: #ef4444;
+    border-color: #ef4444;
 
     &:hover {
-      background-color: #c82333;
+      background: #fef2f2;
+      border-color: #dc2626;
     }
   }
 
-  .batch-enable-btn {
-    padding: 10px 20px;
-    background-color: #17a2b8;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
+  &.btn-success-outline {
+    background: #fff;
+    color: #10b981;
+    border-color: #10b981;
 
     &:hover {
-      background-color: #138496;
+      background: #f0fdf4;
+      border-color: #059669;
     }
   }
 
-  .batch-disable-btn {
-    padding: 10px 20px;
-    background-color: #6c757d;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
+  &.btn-secondary-outline {
+    background: #fff;
+    color: #6b7280;
+    border-color: #d1d5db;
 
     &:hover {
-      background-color: #5a6268;
-    }
-  }
-
-  .import-btn, .export-btn {
-    padding: 10px 20px;
-    background-color: #6f42c1;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-
-    &:hover {
-      background-color: #5a359a;
+      background: #f9fafb;
+      border-color: #9ca3af;
     }
   }
 }
 
-.categories-table {
-  background-color: white;
+// 搜索区域
+.search-section {
+  margin-bottom: 12px;
+}
+
+// 操作栏
+.action-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 12px;
+  background: #fff;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 6px 16px rgba(2, 6, 23, 0.06);
+}
+
+.action-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.action-right {
+  display: flex;
+  gap: 8px;
+}
+
+// 表格卡片
+.table-card {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(2, 6, 23, 0.06);
   overflow: hidden;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
 
-  table {
-    width: 100%;
-    border-collapse: collapse;
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
 
-    th, td {
-      padding: 12px;
-      text-align: left;
-      border-bottom: 1px solid #eee;
+  thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #f8f9fa;
+  }
+
+  th {
+    padding: 12px 14px;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    border-bottom: 2px solid #e5e7eb;
+    white-space: nowrap;
+
+    &.th-checkbox {
+      width: 40px;
+      text-align: center;
     }
 
-    th {
-      background-color: #f8f9fa;
-      font-weight: 600;
-      color: #333;
+    &.th-actions {
+      text-align: center;
+    }
+  }
 
-      .select-all {
-        margin: 0;
+  tbody tr {
+    transition: background-color 0.15s ease;
+
+    &:hover {
+      background: #f9fafb;
+    }
+  }
+
+  td {
+    padding: 12px 14px;
+    border-bottom: 1px solid #eef2f6;
+    color: #4b5563;
+    vertical-align: middle;
+
+    &.td-checkbox {
+      text-align: center;
+    }
+
+    &.td-id {
+      color: #9ca3af;
+      font-size: 12px;
+    }
+
+    &.td-name {
+      font-weight: 500;
+      color: #111827;
+
+      .name-text {
+        display: inline-block;
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
     }
 
-    td {
-      color: #666;
+    &.td-parent {
+      color: #6b7280;
+    }
 
-      input[type="checkbox"] {
-        margin: 0;
-      }
-
-      .category-name {
-        &.level-1 {
-          padding-left: 30px;
-          position: relative;
-
-          &::before {
-            content: "└─";
-            position: absolute;
-            left: 10px;
-            color: #999;
-          }
-        }
-      }
-
+    &.td-sort {
       .drag-handle {
         cursor: move;
-        color: #999;
-        margin-right: 5px;
+        color: #9ca3af;
+        margin-right: 6px;
+        font-size: 14px;
+      }
+
+      .sort-value {
+        color: #4b5563;
+        font-weight: 500;
+      }
+    }
+
+    &.td-status {
+      .status-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 12px;
         font-size: 12px;
-      }
-
-      .status-enabled {
-        color: #28a745;
         font-weight: 500;
-      }
 
-      .status-disabled {
-        color: #dc3545;
-        font-weight: 500;
-      }
+        &.status-enabled {
+          background: #d1fae5;
+          color: #065f46;
+        }
 
+        &.status-disabled {
+          background: #fee2e2;
+          color: #991b1b;
+        }
+      }
+    }
+
+    &.td-icon {
       .category-icon {
-        width: 30px;
-        height: 30px;
-        border-radius: 4px;
+        width: 36px;
+        height: 36px;
+        border-radius: 6px;
         object-fit: cover;
+        border: 1px solid #e5e7eb;
       }
 
       .icon-loading {
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 30px;
-        height: 30px;
-        background-color: #f0f0f0;
-        border-radius: 4px;
-        font-size: 10px;
-        color: #999;
-      }
+        width: 36px;
+        height: 36px;
+        background: linear-gradient(135deg, #f3f7fb, #ffffff);
+        border-radius: 6px;
+        border: 1px solid #e5e7eb;
+        font-size: 12px;
+        color: #9ca3af;
 
-      .custom-attr {
-        background-color: #e9ecef;
-        color: #495057;
-        padding: 2px 8px;
+        .loading-spinner {
+          font-size: 16px;
+        }
+      }
+    }
+
+    &.td-count {
+      .count-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        background: #eff6ff;
+        color: #1e40af;
         border-radius: 12px;
         font-size: 12px;
+        font-weight: 600;
+      }
+    }
+
+    &.td-desc {
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: #6b7280;
+    }
+
+    &.td-attrs {
+      .custom-attr {
+        display: inline-block;
+        background: #f3f4f6;
+        color: #374151;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 11px;
         font-weight: 500;
+        margin-right: 4px;
+        margin-bottom: 4px;
       }
     }
 
-    .edit-btn {
-      padding: 6px 12px;
-      background-color: #ffc107;
-      color: #212529;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      margin-right: 5px;
+    &.td-time {
+      color: #9ca3af;
       font-size: 12px;
-
-      &:hover {
-        background-color: #e0a800;
-      }
+      white-space: nowrap;
     }
 
-    .delete-btn {
-      padding: 6px 12px;
-      background-color: #dc3545;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 12px;
+    &.td-actions {
+      text-align: center;
+      white-space: nowrap;
 
-      &:hover {
-        background-color: #c82333;
+      .btn-action {
+        padding: 5px 12px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 500;
+        margin: 0 3px;
+        transition: all 0.2s ease;
+
+        &.btn-edit {
+          background: #fef3c7;
+          color: #92400e;
+
+          &:hover {
+            background: #fde68a;
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
+          }
+        }
+
+        &.btn-delete {
+          background: #fee2e2;
+          color: #991b1b;
+
+          &:hover {
+            background: #fecaca;
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
+          }
+        }
       }
     }
   }
 }
 
+.checkbox {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  accent-color: #10b981;
+}
 
-
-
-
+// 分页区域
+.pagination-section {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(2, 6, 23, 0.06);
+}
 </style>

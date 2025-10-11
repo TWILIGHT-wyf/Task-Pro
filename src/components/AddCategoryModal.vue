@@ -1,24 +1,40 @@
 <template>
-  <div class="modal-overlay" v-show="visible">
+  <div class="modal-overlay" v-show="visible" @click.self="handleClose">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>{{ isEditMode ? '编辑分类' : '添加分类'}}</h3>
-        <button class="close-btn" @click="handleClose">&times;</button>
+        <div class="header-title">
+          <span class="icon">{{ isEditMode ? '✏️' : '➕' }}</span>
+          <h3>{{ isEditMode ? '编辑分类' : '添加分类'}}</h3>
+        </div>
+        <button class="close-btn" @click="handleClose">
+          <span>&times;</span>
+        </button>
       </div>
       <div class="modal-body">
         <form class="category-form">
           <div class="form-group">
-            <label for="name">分类名称 *</label>
-            <label v-show="!currentForm.name" class="alert-label">请输入分类名称</label>
-            <input type="text" id="name" placeholder="请输入分类名称"
-             v-model="currentForm.name"
-             >
+            <label for="name">
+              分类名称 <span class="required">*</span>
+            </label>
+            <input
+              type="text"
+              id="name"
+              placeholder="请输入分类名称"
+              v-model="currentForm.name"
+              :class="{ 'input-error': !currentForm.name }"
+            >
+            <span v-show="!currentForm.name" class="alert-label">请输入分类名称</span>
           </div>
 
           <div class="form-group">
             <label for="description">描述</label>
-            <label v-show="!currentForm.description" class="alert-label">请输入分类描述</label>
-            <textarea id="description" placeholder="请输入分类描述" v-model="currentForm.description"></textarea>
+            <textarea
+              id="description"
+              placeholder="请输入分类描述"
+              v-model="currentForm.description"
+              rows="3"
+            ></textarea>
+            <span v-show="!currentForm.description" class="alert-label">请输入分类描述</span>
           </div>
 
           <div class="form-group">
@@ -33,39 +49,72 @@
           </div>
 
           <div class="form-group">
-            <label for="sort">排序</label>
-            <label v-show="!currentForm.sort" class="alert-label">请输入分类排序</label>
-            <input type="number" id="sort" placeholder="请输入排序号" v-model="currentForm.sort" min="1">
+            <label for="sort">
+              排序 <span class="required">*</span>
+            </label>
+            <input
+              type="number"
+              id="sort"
+              placeholder="请输入排序号"
+              v-model="currentForm.sort"
+              min="1"
+              :class="{ 'input-error': !currentForm.sort }"
+            >
+            <span v-show="!currentForm.sort" class="alert-label">请输入分类排序</span>
           </div>
 
           <div class="form-group">
             <label>状态</label>
             <div class="radio-group">
-              <label>
-                <input type="radio" value="1" name="status" v-model="currentForm.status"> 启用
+              <label class="radio-label">
+                <input type="radio" value="1" name="status" v-model="currentForm.status">
+                <span class="radio-text">✓ 启用</span>
               </label>
-              <label>
-                <input type="radio" value="0" name="status" v-model="currentForm.status"> 禁用
+              <label class="radio-label">
+                <input type="radio" value="0" name="status" v-model="currentForm.status">
+                <span class="radio-text">✗ 禁用</span>
               </label>
             </div>
           </div>
 
           <div class="form-group">
-            <label for="icon">图标URL</label>
-            <label v-show="!currentForm.icon" class="alert-label">请输入分类图标URL</label>
-            <input type="url" id="icon" placeholder="请输入图标URL" v-model="currentForm.icon">
+            <label for="icon">
+              图标URL <span class="required">*</span>
+            </label>
+            <input
+              type="url"
+              id="icon"
+              placeholder="请输入图标URL"
+              v-model="currentForm.icon"
+              :class="{ 'input-error': !currentForm.icon }"
+            >
+            <span v-show="!currentForm.icon" class="alert-label">请输入分类图标URL</span>
           </div>
 
           <div class="form-group">
             <label for="customAttrs">自定义属性</label>
-            <input type="text" id="customAttrs" placeholder="多个属性用逗号分隔" v-model="currentForm.customAttrs">
+            <input
+              type="text"
+              id="customAttrs"
+              placeholder="多个属性用逗号分隔，例如：热门,推荐"
+              v-model="currentForm.customAttrs"
+            >
+            <span class="hint-text">多个属性请用逗号分隔</span>
           </div>
         </form>
-        <div v-show="successMessage" class="success-label">{{ isEditMode ? '编辑成功' : '添加成功' }}</div>
+
+        <div v-show="successMessage" class="success-message">
+          <span class="success-icon">✓</span>
+          {{ isEditMode ? '编辑成功' : '添加成功' }}
+        </div>
       </div>
       <div class="modal-footer">
-        <button class="cancel-btn" @click="handleClose">取消</button>
-        <button class="submit-btn" @click="handleSubmit">确定</button>
+        <button class="btn btn-cancel" @click="handleClose">
+          取消
+        </button>
+        <button class="btn btn-submit" @click="handleSubmit">
+          <span>{{ isEditMode ? '保存' : '添加' }}</span>
+        </button>
       </div>
     </div>
   </div>
@@ -176,126 +225,248 @@ const currentForm = computed(() => {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .modal-content {
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  max-width: 500px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 540px;
   width: 90%;
-  max-height: 80vh;
+  max-height: 85vh;
   overflow-y: auto;
+  animation: slideUp 0.3s ease;
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px;
-  border-bottom: 1px solid #eee;
+  padding: 20px 24px;
+  border-bottom: 1px solid #f1f5f9;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
 
-  h3 {
-    margin: 0;
-    color: #333;
-    font-size: 18px;
+  .header-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    .icon {
+      font-size: 20px;
+    }
+
+    h3 {
+      margin: 0;
+      color: #111827;
+      font-size: 18px;
+      font-weight: 600;
+    }
   }
 
   .close-btn {
     background: none;
     border: none;
-    font-size: 24px;
     cursor: pointer;
-    color: #999;
     padding: 0;
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+
+    span {
+      font-size: 24px;
+      color: #9ca3af;
+    }
 
     &:hover {
-      background-color: #f5f5f5;
-      color: #666;
+      background: #fee2e2;
+
+      span {
+        color: #dc2626;
+      }
     }
   }
 }
 
 .modal-body {
-  padding: 20px;
+  padding: 24px;
+  max-height: calc(85vh - 140px);
+  overflow-y: auto;
 
   .category-form {
     .form-group {
-      margin-bottom: 16px;
+      margin-bottom: 20px;
 
       label {
         display: block;
-        margin-bottom: 6px;
+        margin-bottom: 8px;
         font-weight: 500;
-        color: #333;
+        color: #374151;
         font-size: 14px;
+
+        .required {
+          color: #ef4444;
+          margin-left: 2px;
+        }
       }
 
       input, select, textarea {
         width: 100%;
-        padding: 10px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
+        padding: 10px 12px;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
         font-size: 14px;
+        color: #374151;
         box-sizing: border-box;
+        transition: all 0.2s ease;
+        background: #f9fafb;
+
+        &::placeholder {
+          color: #9ca3af;
+        }
 
         &:focus {
           outline: none;
-          border-color: #007bff;
-          box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+          border-color: #10b981;
+          background: #fff;
+          box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        }
+
+        &.input-error {
+          border-color: #ef4444;
+          background: #fef2f2;
         }
       }
 
       textarea {
         resize: vertical;
         min-height: 80px;
+        font-family: inherit;
+        line-height: 1.5;
+      }
+
+      select {
+        cursor: pointer;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        padding-right: 36px;
+        appearance: none;
       }
 
       .radio-group {
         display: flex;
-        gap: 20px;
+        gap: 16px;
+        padding: 8px 0;
 
-        label {
+        .radio-label {
           display: flex;
           align-items: center;
-          gap: 6px;
+          gap: 8px;
           margin-bottom: 0;
           font-weight: normal;
           cursor: pointer;
+          padding: 8px 16px;
+          border: 1px solid #e5e7eb;
+          border-radius: 6px;
+          transition: all 0.2s ease;
+          background: #f9fafb;
 
           input[type="radio"] {
             width: auto;
             margin: 0;
+            accent-color: #10b981;
+            cursor: pointer;
+          }
+
+          .radio-text {
+            color: #374151;
+            font-size: 14px;
+          }
+
+          &:hover {
+            border-color: #10b981;
+            background: #f0fdf4;
+          }
+
+          &:has(input:checked) {
+            border-color: #10b981;
+            background: #d1fae5;
+
+            .radio-text {
+              color: #065f46;
+              font-weight: 500;
+            }
           }
         }
       }
 
       .alert-label {
-        color: #dc3545;
+        color: #ef4444;
         font-size: 12px;
-        margin-top: 4px;
+        margin-top: 6px;
         display: block;
+        font-weight: normal;
+      }
+
+      .hint-text {
+        color: #9ca3af;
+        font-size: 12px;
+        margin-top: 6px;
+        display: block;
+        font-weight: normal;
       }
     }
   }
 
-  .success-label {
-    color: #28a745;
+  .success-message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #065f46;
+    background: #d1fae5;
     font-size: 14px;
-    margin-top: 16px;
-    text-align: center;
+    margin-top: 20px;
+    padding: 12px 16px;
+    border-radius: 8px;
     font-weight: 500;
+    border: 1px solid #a7f3d0;
+
+    .success-icon {
+      font-size: 18px;
+      font-weight: 700;
+    }
   }
 }
 
@@ -303,36 +474,65 @@ const currentForm = computed(() => {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  padding: 20px;
-  border-top: 1px solid #eee;
+  padding: 16px 24px;
+  border-top: 1px solid #f1f5f9;
+  background: #fafbfc;
 
-  .cancel-btn {
-    padding: 10px 20px;
-    background-color: #6c757d;
-    color: white;
-    border: none;
-    border-radius: 4px;
+  .btn {
+    padding: 10px 24px;
+    border: 1px solid transparent;
+    border-radius: 6px;
     cursor: pointer;
     font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
 
-    &:hover {
-      background-color: #5a6268;
+    &.btn-cancel {
+      background: #fff;
+      color: #6b7280;
+      border-color: #d1d5db;
+
+      &:hover {
+        background: #f9fafb;
+        border-color: #9ca3af;
+      }
     }
-  }
 
-  .submit-btn {
-    padding: 10px 20px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
+    &.btn-submit {
+      background: #10b981;
+      color: #fff;
+      border-color: rgba(16, 185, 129, 0.9);
 
-    &:hover {
-      background-color: #0056b3;
+      &:hover {
+        background: #059669;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+      }
+
+      &:active {
+        transform: translateY(1px);
+      }
     }
   }
 }
 
+// 滚动条样式
+.modal-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+
+  &:hover {
+    background: #94a3b8;
+  }
+}
 </style>
