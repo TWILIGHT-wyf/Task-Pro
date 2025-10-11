@@ -1,7 +1,7 @@
 <template>
   <div class="pagination">
     <button
-      class="page-btn"
+      class="btn-base btn-primary"
       :disabled="currentPage <= 1"
       @click="handlePrevPage"
     >
@@ -11,7 +11,7 @@
       第 <span class="current">{{ currentPage }}</span> 页 / 共 <span class="total">{{ totalPages }}</span> 页
     </span>
     <button
-      class="page-btn"
+      class="btn-base btn-primary"
       :disabled="currentPage >= totalPages"
       @click="handleNextPage"
     >
@@ -46,44 +46,6 @@ const handlePrevPage = () => {
   justify-content: center;
   align-items: center;
   gap: 16px;
-}
-
-.page-btn {
-  padding: 8px 16px;
-  background: #fff;
-  color: #374151;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-
-  span {
-    font-size: 14px;
-  }
-
-  &:hover:not(:disabled) {
-    background: #10b981;
-    color: #fff;
-    border-color: #10b981;
-    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
-  }
-
-  &:active:not(:disabled) {
-    transform: translateY(1px);
-  }
-
-  &:disabled {
-    background: #f9fafb;
-    color: #d1d5db;
-    border-color: #e5e7eb;
-    cursor: not-allowed;
-    opacity: 0.6;
-  }
 }
 
 .page-info {

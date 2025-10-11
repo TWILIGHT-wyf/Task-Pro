@@ -7,14 +7,14 @@
       style="display: none"
       @change="handleFileChange"
     >
-    <button class="btn btn-import" @click="triggerImport">导入
+    <button class="btn-base btn-import" @click="triggerImport">导入
     </button>
     <select v-model="selectedFormat" class="format-select">
       <option value="csv">CSV</option>
       <option value="xlsx">Excel</option>
       <option value="json">JSON</option>
     </select>
-    <button class="btn btn-export" @click="handleExport">导出
+    <button class="btn-base btn-export" @click="handleExport">导出
     </button>
   </div>
 </template>
@@ -79,52 +79,6 @@ const handleExport = () => {
   display: flex;
   gap: 8px;
   align-items: center;
-}
-
-.btn {
-  padding: 6px 14px;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  white-space: nowrap;
-
-  span {
-    font-size: 14px;
-  }
-
-  &.btn-import {
-    background: #fff;
-    color: #6366f1;
-    border-color: #6366f1;
-
-    &:hover {
-      background: #eef2ff;
-      border-color: #4f46e5;
-      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
-    }
-  }
-
-  &.btn-export {
-    background: #fff;
-    color: #8b5cf6;
-    border-color: #8b5cf6;
-
-    &:hover {
-      background: #f5f3ff;
-      border-color: #7c3aed;
-      box-shadow: 0 2px 8px rgba(139, 92, 246, 0.2);
-    }
-  }
-
-  &:active {
-    transform: translateY(1px);
-  }
 }
 
 .format-select {

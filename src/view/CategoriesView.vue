@@ -8,7 +8,7 @@
         <div class="subtitle">商品分类管理 — 分类列表</div>
       </div>
       <div class="header-actions">
-        <button class="btn btn-primary" @click="isShow = true, isEditMode = false">
+        <button class="btn-base btn-primary" @click="isShow = true, isEditMode = false">
           <span>➕</span> 添加分类
         </button>
       </div>
@@ -20,11 +20,11 @@
     </div>
 
     <!-- 操作栏 -->
-    <div class="action-bar">
+    <div class="action-bar card-white">
       <div class="action-group">
-        <button class="btn btn-danger-outline btn-small" @click="handleBatchDelete">批量删除</button>
-        <button class="btn btn-success-outline btn-small" @click="handleBatchEnable(1)">批量启用</button>
-        <button class="btn btn-secondary-outline btn-small" @click="handleBatchEnable(0)">批量禁用</button>
+        <button class="btn-base btn-danger-outline btn-small" @click="handleBatchDelete">批量删除</button>
+        <button class="btn-base btn-success-outline btn-small" @click="handleBatchEnable(1)">批量启用</button>
+        <button class="btn-base btn-secondary-outline btn-small" @click="handleBatchEnable(0)">批量禁用</button>
       </div>
       <div class="action-right">
         <ImportExport @import="handleImport" @export="handleExport"></ImportExport>
@@ -32,70 +32,21 @@
     </div>
 
     <!-- 分类列表 -->
-    <div class="table-card">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th class="th-checkbox">
-              <input type="checkbox" class="checkbox" :checked="isAllSelected" @change="handleSelect">
-            </th>
-            <th>ID</th>
-            <th>分类名称</th>
-            <th>父分类</th>
-            <th>排序</th>
-            <th>状态</th>
-            <th>图标</th>
-            <th>商品数量</th>
-            <th>描述</th>
-            <th>自定义属性</th>
-            <th>创建时间</th>
-            <th class="th-actions">操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="{ name,sort,productCount,description,customAttrs,createTime,id,icon,status,parentId } in categories" :key="id" class="table-row">
-            <td class="td-checkbox">
-              <input type="checkbox" class="checkbox" :checked="selectedId.includes(id)" @change="select(id)">
-            </td>
-            <td class="td-id">{{ id }}</td>
-            <td class="td-name">
-              <span class="name-text">{{ name }}</span>
-            </td>
-            <td class="td-parent">{{ parentId ? categories.find(item => item.id === parentId)?.name : '-' }}</td>
-            <td class="td-sort">
-              <span class="drag-handle">⋮⋮</span>
-              <span class="sort-value">{{ sort }}</span>
-            </td>
-            <td class="td-status">
-              <span :class="['status-badge', status === 1 ? 'status-enabled' : 'status-disabled']">
-                {{ status === 1 ? '启用' : '未启用'}}
-              </span>
-            </td>
-            <td class="td-icon">
-              <div v-if="iconLoading[id]" class="icon-loading">
-                <span class="loading-spinner">⏳</span>
-              </div>
-              <img v-else :src="icon" alt="图标" class="category-icon" @load="iconLoading[id] = false" @error="iconLoading[id] = false">
-            </td>
-            <td class="td-count">
-              <span class="count-badge">{{ productCount }}</span>
-            </td>
-            <td class="td-desc">{{ description || '-' }}</td>
-            <td class="td-attrs">
-              <span class="custom-attr" v-for="atter in customAttrs" :key="atter">{{ atter }}</span>
-            </td>
-            <td class="td-time">{{ createTime }}</td>
-            <td class="td-actions">
-              <button class="btn-action btn-edit" @click="handleEdit(id)">编辑</button>
-              <button class="btn-action btn-delete" @click="handleDelete(id)">删除</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <div class="table-card card-white">
+      <CategoryTree
+        :categories="categories"
+        :selected-ids="selectedId"
+        :icon-loading="iconLoading"
+        @select="select"
+        @select-all="handleSelect"
+        @edit="handleEdit"
+        @delete="handleDelete"
+        @toggle-status="handleToggleStatus"
+      />
     </div>
 
     <!-- 分页 -->
-    <div class="pagination-section">
+    <div class="pagination-section card-white">
       <CustomPagination
         :currentPage="currentPage"
         :totalPages="totalPages"
@@ -116,10 +67,21 @@
   >
   </AddCategoryModal>
 
+  <ConfirmModal
+    :visible="confirmModal.visible"
+    :title="confirmModal.title"
+    :message="confirmModal.message"
+    :type="confirmModal.type"
+    :confirmText="confirmModal.confirmText"
+    @confirm="handleConfirm"
+    @cancel="handleCancel"
+  />
 </template>
 
 <script setup>
 import AddCategoryModal from '@/components/AddCategoryModal.vue'
+import CategoryTree from '@/components/CategoryTree.vue'
+import ConfirmModal from '@/components/ConfirmModal.vue'
 import CustomPagination from '@/components/CustomPagination.vue'
 import ImportExport from '@/components/ImportExport.vue'
 import SearchBar from '@/components/SearchBar.vue'
@@ -186,6 +148,16 @@ async function init() {
 // 添加分类
 const isShow = ref()
 
+// 确认模态框状态
+const confirmModal = ref({
+  visible: false,
+  title: '',
+  message: '',
+  type: 'primary',
+  confirmText: '确认',
+  onConfirm: null
+})
+
 // 更新列表
 const handleAddCategory = async () => {
   await init()
@@ -212,6 +184,21 @@ const handleEdit = async (id) => {
     editId.value = id
   } catch (error) {
     console.error('编辑失败:', error)
+  }
+}
+
+// 切换状态
+const handleToggleStatus = async (id, status) => {
+
+
+  try {
+    const newStatus = status === 1 ? 0 : 1
+    const res = await axios.patch(`/api/categories/${id}`, { status: newStatus });
+    console.log(res.data.message);
+    await init();
+  } catch (error) {
+    console.error('切换状态失败:', error);
+    alert('切换状态失败，请重试');
   }
 }
 
@@ -243,18 +230,24 @@ const handleBatchDelete = async () => {
     alert('请先选择要删除的项目')
     return
   }
-  if (!confirm(`确定删除选中的 ${selectedId.value.length} 个项目吗？`)) {
-    return
-  }
-  try {
-    for (const id of selectedId.value) {
-      await handleDelete(id)
+  confirmModal.value = {
+    visible: true,
+    title: '确认删除',
+    message: `确定删除选中的 ${selectedId.value.length} 个项目吗？此操作不可撤销。`,
+    type: 'danger',
+    confirmText: '删除',
+    onConfirm: async () => {
+      try {
+        for (const id of selectedId.value) {
+          await handleDelete(id)
+        }
+        selectedId.value = []
+        isAllSelected.value = false
+      } catch (error) {
+        console.error('批量删除失败:', error)
+        alert('批量删除过程中出现错误，请检查')
+      }
     }
-    selectedId.value = []
-    isAllSelected.value = false
-  } catch (error) {
-    console.error('批量删除失败:', error)
-    alert('批量删除过程中出现错误，请检查')
   }
 }
 
@@ -265,20 +258,26 @@ const handleBatchEnable = async (status) => {
     return
   }
   const action = status === 1 ? '启用' : '禁用'
-  if (!confirm(`确定${action}选中的 ${selectedId.value.length} 个项目吗？`)) {
-    return
-  }
-  try {
-    for (const id of selectedId.value) {
-      const res = await axios.patch(`/api/categories/${id}`, { status: status })
-      console.log(res.data.message)
+  confirmModal.value = {
+    visible: true,
+    title: `确认${action}`,
+    message: `确定${action}选中的 ${selectedId.value.length} 个项目吗？`,
+    type: status === 1 ? 'primary' : 'danger',
+    confirmText: action,
+    onConfirm: async () => {
+      try {
+        for (const id of selectedId.value) {
+          const res = await axios.patch(`/api/categories/${id}`, { status: status })
+          console.log(res.data.message)
+        }
+        selectedId.value = []
+        isAllSelected.value = false
+        await init()
+      } catch (error) {
+        console.error(`批量${action}失败:`, error)
+        alert(`批量${action}过程中出现错误，请检查`)
+      }
     }
-    selectedId.value = []
-    isAllSelected.value = false
-    await init()
-  } catch (error) {
-    console.error(`批量${action}失败:`, error)
-    alert(`批量${action}过程中出现错误，请检查`)
   }
 }
 
@@ -335,6 +334,18 @@ const handleExport = async (format) => {
   }
 }
 
+// 确认和取消处理
+const handleConfirm = async () => {
+  if (confirmModal.value.onConfirm) {
+    await confirmModal.value.onConfirm()
+  }
+  confirmModal.value.visible = false
+}
+
+const handleCancel = () => {
+  confirmModal.value.visible = false
+}
+
 
 
 
@@ -383,69 +394,6 @@ const handleExport = async (format) => {
   gap: 8px;
 }
 
-// 按钮样式（与仪表盘一致）
-.btn {
-  padding: 8px 16px;
-  border-radius: 6px;
-  border: 1px solid transparent;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-
-  &.btn-small {
-    padding: 6px 12px;
-    font-size: 13px;
-  }
-
-  &.btn-primary {
-    background: #10b981;
-    color: #fff;
-    border-color: rgba(16, 185, 129, 0.9);
-
-    &:hover {
-      background: #059669;
-      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-    }
-  }
-
-  &.btn-danger-outline {
-    background: #fff;
-    color: #ef4444;
-    border-color: #ef4444;
-
-    &:hover {
-      background: #fef2f2;
-      border-color: #dc2626;
-    }
-  }
-
-  &.btn-success-outline {
-    background: #fff;
-    color: #10b981;
-    border-color: #10b981;
-
-    &:hover {
-      background: #f0fdf4;
-      border-color: #059669;
-    }
-  }
-
-  &.btn-secondary-outline {
-    background: #fff;
-    color: #6b7280;
-    border-color: #d1d5db;
-
-    &:hover {
-      background: #f9fafb;
-      border-color: #9ca3af;
-    }
-  }
-}
-
 // 搜索区域
 .search-section {
   margin-bottom: 12px;
@@ -458,9 +406,6 @@ const handleExport = async (format) => {
   align-items: center;
   margin-bottom: 12px;
   padding: 12px;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 6px 16px rgba(2, 6, 23, 0.06);
 }
 
 .action-group {
@@ -476,229 +421,11 @@ const handleExport = async (format) => {
 
 // 表格卡片
 .table-card {
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 6px 16px rgba(2, 6, 23, 0.06);
   overflow: hidden;
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
-}
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-
-  thead {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    background: #f8f9fa;
-  }
-
-  th {
-    padding: 12px 14px;
-    text-align: left;
-    font-weight: 600;
-    color: #374151;
-    border-bottom: 2px solid #e5e7eb;
-    white-space: nowrap;
-
-    &.th-checkbox {
-      width: 40px;
-      text-align: center;
-    }
-
-    &.th-actions {
-      text-align: center;
-    }
-  }
-
-  tbody tr {
-    transition: background-color 0.15s ease;
-
-    &:hover {
-      background: #f9fafb;
-    }
-  }
-
-  td {
-    padding: 12px 14px;
-    border-bottom: 1px solid #eef2f6;
-    color: #4b5563;
-    vertical-align: middle;
-
-    &.td-checkbox {
-      text-align: center;
-    }
-
-    &.td-id {
-      color: #9ca3af;
-      font-size: 12px;
-    }
-
-    &.td-name {
-      font-weight: 500;
-      color: #111827;
-
-      .name-text {
-        display: inline-block;
-        max-width: 200px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-    }
-
-    &.td-parent {
-      color: #6b7280;
-    }
-
-    &.td-sort {
-      .drag-handle {
-        cursor: move;
-        color: #9ca3af;
-        margin-right: 6px;
-        font-size: 14px;
-      }
-
-      .sort-value {
-        color: #4b5563;
-        font-weight: 500;
-      }
-    }
-
-    &.td-status {
-      .status-badge {
-        display: inline-block;
-        padding: 4px 10px;
-        border-radius: 12px;
-        font-size: 12px;
-        font-weight: 500;
-
-        &.status-enabled {
-          background: #d1fae5;
-          color: #065f46;
-        }
-
-        &.status-disabled {
-          background: #fee2e2;
-          color: #991b1b;
-        }
-      }
-    }
-
-    &.td-icon {
-      .category-icon {
-        width: 36px;
-        height: 36px;
-        border-radius: 6px;
-        object-fit: cover;
-        border: 1px solid #e5e7eb;
-      }
-
-      .icon-loading {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 36px;
-        height: 36px;
-        background: linear-gradient(135deg, #f3f7fb, #ffffff);
-        border-radius: 6px;
-        border: 1px solid #e5e7eb;
-        font-size: 12px;
-        color: #9ca3af;
-
-        .loading-spinner {
-          font-size: 16px;
-        }
-      }
-    }
-
-    &.td-count {
-      .count-badge {
-        display: inline-block;
-        padding: 4px 10px;
-        background: #eff6ff;
-        color: #1e40af;
-        border-radius: 12px;
-        font-size: 12px;
-        font-weight: 600;
-      }
-    }
-
-    &.td-desc {
-      max-width: 200px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      color: #6b7280;
-    }
-
-    &.td-attrs {
-      .custom-attr {
-        display: inline-block;
-        background: #f3f4f6;
-        color: #374151;
-        padding: 3px 10px;
-        border-radius: 12px;
-        font-size: 11px;
-        font-weight: 500;
-        margin-right: 4px;
-        margin-bottom: 4px;
-      }
-    }
-
-    &.td-time {
-      color: #9ca3af;
-      font-size: 12px;
-      white-space: nowrap;
-    }
-
-    &.td-actions {
-      text-align: center;
-      white-space: nowrap;
-
-      .btn-action {
-        padding: 5px 12px;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 12px;
-        font-weight: 500;
-        margin: 0 3px;
-        transition: all 0.2s ease;
-
-        &.btn-edit {
-          background: #fef3c7;
-          color: #92400e;
-
-          &:hover {
-            background: #fde68a;
-            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
-          }
-        }
-
-        &.btn-delete {
-          background: #fee2e2;
-          color: #991b1b;
-
-          &:hover {
-            background: #fecaca;
-            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
-          }
-        }
-      }
-    }
-  }
-}
-
-.checkbox {
-  cursor: pointer;
-  width: 16px;
-  height: 16px;
-  accent-color: #10b981;
+  padding: 0;
 }
 
 // 分页区域
@@ -707,8 +434,5 @@ const handleExport = async (format) => {
   display: flex;
   justify-content: center;
   padding: 12px;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 6px 16px rgba(2, 6, 23, 0.06);
 }
 </style>

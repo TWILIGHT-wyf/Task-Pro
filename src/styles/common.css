@@ -98,5 +98,98 @@ html, body, #app {
 }
 
 /* 提示与错误 */
-.hint, .note{ font-size:13px; color:var(--muted); }
-.message, .error{ color:var(--danger); font-size:13px; margin-top:6px; }
+
+/* 通用按钮基础样式 */
+.btn-base {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-primary {
+  background: #10b981;
+  color: #fff;
+  border-color: rgba(16, 185, 129, 0.9);
+}
+
+.btn-primary:hover {
+  background: #059669;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.btn-danger-outline {
+  background: #fff;
+  color: #ef4444;
+  border-color: #ef4444;
+}
+
+.btn-danger-outline:hover {
+  background: #fef2f2;
+  border-color: #dc2626;
+}
+
+.btn-success-outline {
+  background: #fff;
+  color: #10b981;
+  border-color: #10b981;
+}
+
+.btn-success-outline:hover {
+  background: #f0fdf4;
+  border-color: #059669;
+}
+
+.btn-secondary-outline {
+  background: #fff;
+  color: #6b7280;
+  border-color: #d1d5db;
+}
+
+.btn-danger {
+  background: #ef4444;
+  color: #fff;
+  border-color: rgba(239, 68, 68, 0.9);
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+/* 通用卡片样式（白色背景） */
+.card-white {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(2, 6, 23, 0.06);
+}
+
+.btn-import {
+  background: #fff;
+  color: #6366f1;
+  border-color: #6366f1;
+}
+
+.btn-import:hover {
+  background: #eef2ff;
+  border-color: #4f46e5;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
+}
+
+.btn-export {
+  background: #fff;
+  color: #8b5cf6;
+  border-color: #8b5cf6;
+}
+
+.btn-export:hover {
+  background: #f5f3ff;
+  border-color: #7c3aed;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.2);
+}

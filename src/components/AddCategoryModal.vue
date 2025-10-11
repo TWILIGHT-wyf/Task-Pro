@@ -109,10 +109,10 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-cancel" @click="handleClose">
+        <button class="btn-base btn-secondary-outline" @click="handleClose">
           取消
         </button>
-        <button class="btn btn-submit" @click="handleSubmit">
+        <button class="btn-base btn-primary" @click="handleSubmit">
           <span>{{ isEditMode ? '保存' : '添加' }}</span>
         </button>
       </div>
@@ -121,7 +121,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import axios from 'axios'
 
 
@@ -142,6 +142,7 @@ const form = ref({
   customAttrs: ''
 })
 const successMessage = ref(false)
+const closeTimeout = ref(null)
 // 关闭
 const handleClose = () => {
   successMessage.value = false
@@ -160,7 +161,7 @@ async function handleSubmit() {
 
       emit('submit', processedForm)
       successMessage.value = true
-      setTimeout(() => {
+      closeTimeout.value = setTimeout(() => {
         handleClose()
         successMessage.value = false
       }, 2000)
@@ -205,8 +206,30 @@ const editData = computed(() => {
 })
 
 const currentForm = computed(() => {
-  const result = props.isEditMode ? editData.value : form.value
-  return result
+  if (props.isEditMode) {
+    return editData.value || {
+      name: '',
+      description: '',
+      parentId: '',
+      sort: 0,
+      status: 1,
+      icon: '',
+      customAttrs: ''
+    }
+  } else {
+    return form.value
+  }
+})
+
+// 监听 visible 变化，重置成功消息并清除超时
+watch(() => props.visible, (newVisible) => {
+  if (newVisible) {
+    successMessage.value = false
+    if (closeTimeout.value) {
+      clearTimeout(closeTimeout.value)
+      closeTimeout.value = null
+    }
+  }
 })
 
 
@@ -477,45 +500,6 @@ const currentForm = computed(() => {
   padding: 16px 24px;
   border-top: 1px solid #f1f5f9;
   background: #fafbfc;
-
-  .btn {
-    padding: 10px 24px;
-    border: 1px solid transparent;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
-    transition: all 0.2s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-
-    &.btn-cancel {
-      background: #fff;
-      color: #6b7280;
-      border-color: #d1d5db;
-
-      &:hover {
-        background: #f9fafb;
-        border-color: #9ca3af;
-      }
-    }
-
-    &.btn-submit {
-      background: #10b981;
-      color: #fff;
-      border-color: rgba(16, 185, 129, 0.9);
-
-      &:hover {
-        background: #059669;
-        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-      }
-
-      &:active {
-        transform: translateY(1px);
-      }
-    }
-  }
 }
 
 // 滚动条样式

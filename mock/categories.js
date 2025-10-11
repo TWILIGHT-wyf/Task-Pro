@@ -441,6 +441,7 @@ export default [
       const category = categories.find(cat => cat.id == id)
       if (category) {
         Object.assign(category, body)
+        console.log(category)
         return {
           code: 0,
           message: '编辑成功'

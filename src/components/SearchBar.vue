@@ -10,7 +10,7 @@
         @keyup.enter="handleSearch"
       >
     </div>
-    <button class="search-btn" @click="handleSearch">搜索</button>
+    <button class="btn-base btn-primary" @click="handleSearch">搜索</button>
   </div>
 </template>
 
@@ -73,28 +73,6 @@ watch(keyword, (newVal) => {
       background: #fff;
       box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
     }
-  }
-}
-
-.search-btn {
-  padding: 10px 24px;
-  background: #10b981;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-
-  &:hover {
-    background: #059669;
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-  }
-
-  &:active {
-    transform: translateY(1px);
   }
 }
 </style>
