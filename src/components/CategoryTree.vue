@@ -53,6 +53,10 @@ const props = defineProps({
     type: Array,
     required: true
   },
+  allCategories: {
+    type: Array,
+    default: () => []
+  },
   selectedIds: {
     type: Array,
     default: () => []
@@ -69,11 +73,16 @@ const emit = defineEmits(['select', 'select-all', 'edit', 'delete', 'toggle-stat
 const expandedState = ref({})
 
 const treeData = computed(() => {
-  if (!props.categories || !Array.isArray(props.categories)) {
+  if (!props.allCategories || !Array.isArray(props.allCategories) || !props.categories || !Array.isArray(props.categories)) {
     return []
   }
+
+  
+  const currentPageIds = new Set(props.categories.map(item => item.id))
+
+
   const buildTree = (parentId = null) => {
-    return props.categories
+    return props.allCategories
       .filter(item => item.parentId === parentId)
       .map(item => ({
         ...item,
@@ -82,7 +91,9 @@ const treeData = computed(() => {
       }))
       .sort((a, b) => a.sort - b.sort)
   }
-  return buildTree()
+
+
+  return buildTree().filter(node => currentPageIds.has(node.id))
 })
 
 // 是否全选

@@ -377,7 +377,37 @@ export default [
 
       // 搜索过滤
       if (query.keyword) {
-        filteredList = categories.filter(item => item.name.includes(query.keyword))
+        // 递归搜索函数，收集所有匹配的分类及其子分类
+        const collectMatchingCategories = (list, keyword) => {
+          const result = []
+          const isMatch = (item) => item.name.includes(keyword)
+
+          list.forEach(item => {
+            if (isMatch(item)) {
+              // 如果匹配，添加整个分支
+              result.push(item)
+              // 添加所有子分类
+              const children = list.filter(child => child.parentId === item.id)
+              result.push(...children)
+            } else {
+              // 如果不匹配，检查子分类
+              const children = list.filter(child => child.parentId === item.id)
+              const matchingChildren = collectMatchingCategories(children, keyword)
+              if (matchingChildren.length > 0) {
+                // 如果有匹配的子分类，添加父分类和匹配的子
+                result.push(item)
+                result.push(...matchingChildren)
+              }
+            }
+          })
+          return result
+        }
+
+        filteredList = collectMatchingCategories(categories, query.keyword)
+        // 去重
+        filteredList = filteredList.filter((item, index, self) =>
+          self.findIndex(c => c.id === item.id) === index
+        )
         totalRecords = filteredList.length
       }
 

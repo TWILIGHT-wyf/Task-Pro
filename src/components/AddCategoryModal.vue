@@ -40,7 +40,7 @@
           <div class="form-group">
             <label for="parentId">父分类</label>
             <select id="parentId" v-model="currentForm.parentId">
-              <option value="">无父分类</option>
+              <option :value="null">无父分类</option>
               <option
               :value="item.id"
               v-for="item in categories" :key="item.id"
@@ -135,7 +135,7 @@ const emit = defineEmits(['close', 'submit'])
 const form = ref({
   name: '',
   description: '',
-  parentId: '',
+  parentId: null,
   sort: 0,
   status: 1,
   icon: '',
@@ -171,7 +171,7 @@ async function handleSubmit() {
         form.value = {
           name: '',
           description: '',
-          parentId: '',
+          parentId: null,
           sort: 0,
           status: 1,
           icon: '',
@@ -210,7 +210,7 @@ const currentForm = computed(() => {
     return editData.value || {
       name: '',
       description: '',
-      parentId: '',
+      parentId: null,
       sort: 0,
       status: 1,
       icon: '',
@@ -221,7 +221,7 @@ const currentForm = computed(() => {
   }
 })
 
-// 监听 visible 变化，重置成功消息并清除超时
+
 watch(() => props.visible, (newVisible) => {
   if (newVisible) {
     successMessage.value = false

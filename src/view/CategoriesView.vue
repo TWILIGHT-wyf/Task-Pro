@@ -35,6 +35,7 @@
     <div class="table-card card-white">
       <CategoryTree
         :categories="categories"
+        :all-categories="allCategories"
         :selected-ids="selectedId"
         :icon-loading="iconLoading"
         @select="select"
@@ -59,7 +60,7 @@
 
   <AddCategoryModal
   :visible="isShow"
-  :categories="categories"
+  :categories="allCategories"
   :isEditMode="isEditMode"
   :editId="editId"
   @close="isShow = false"
@@ -94,6 +95,7 @@ import { ref, onMounted, reactive, watch } from 'vue'
 // 初始化
 onMounted(async () => {
   await init()
+  await fetchAllCategories()
 })
 
 // 分页
@@ -145,6 +147,17 @@ async function init() {
   }
 }
 
+// 获取所有分类(用于模态框中的父分类选择)
+const allCategories = ref([])
+async function fetchAllCategories() {
+  try {
+    const res = await axios.get('/api/categories?page=1&size=1000')
+    allCategories.value = res.data.data.list
+  } catch (error) {
+    console.error('获取所有分类失败:', error)
+  }
+}
+
 // 添加分类
 const isShow = ref()
 
@@ -160,7 +173,10 @@ const confirmModal = ref({
 
 // 更新列表
 const handleAddCategory = async () => {
+  searchkeyword.value = ''
+  currentPage.value = 1
   await init()
+  await fetchAllCategories()
   isShow.value = false
 }
 
@@ -169,6 +185,7 @@ const handleDelete = async (id) => {
   try {
     await axios.delete(`/api/categories/${id}`)
     await init()
+    await fetchAllCategories()
   } catch (error) {
     console.error('删除失败:', error)
   }
@@ -196,6 +213,7 @@ const handleToggleStatus = async (id, status) => {
     const res = await axios.patch(`/api/categories/${id}`, { status: newStatus });
     console.log(res.data.message);
     await init();
+    await fetchAllCategories();
   } catch (error) {
     console.error('切换状态失败:', error);
     alert('切换状态失败，请重试');
@@ -243,6 +261,8 @@ const handleBatchDelete = async () => {
         }
         selectedId.value = []
         isAllSelected.value = false
+        await init()
+        await fetchAllCategories()
       } catch (error) {
         console.error('批量删除失败:', error)
         alert('批量删除过程中出现错误，请检查')
@@ -273,6 +293,7 @@ const handleBatchEnable = async (status) => {
         selectedId.value = []
         isAllSelected.value = false
         await init()
+        await fetchAllCategories()
       } catch (error) {
         console.error(`批量${action}失败:`, error)
         alert(`批量${action}过程中出现错误，请检查`)
@@ -300,6 +321,7 @@ const handleImport = async (data) => {
     }
     alert(`成功导入 ${data.length} 条数据`)
     await init()
+    await fetchAllCategories()
   } catch (error) {
     console.error('导入失败:', error)
     alert('导入过程中出现错误，请检查数据格式')
