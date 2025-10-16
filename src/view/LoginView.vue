@@ -38,8 +38,8 @@
 
 <script setup>
 import { reactive, ref } from 'vue'
-import axios from 'axios'
 import { useRouter } from 'vue-router'
+import { login } from '@/api'
 const error = ref('')
 const router = useRouter()
 const loading = ref(false)
@@ -57,14 +57,16 @@ async function submit() {
   }
   loading.value = true
   try {
-    const res = await axios.post('/api/login', { username: form.username, password: form.password })
-    if (res.data?.code === 0) {
-      const token = res.data.data.token
+    const res = await login({
+      username: form.username,
+      password: form.password
+    })
+    if (res.code === 0) {
+      const token = res.data.token
       localStorage.setItem('token', token)
       router.push('/')
-
     } else {
-      error.value = res.data?.message || '登录失败'
+      error.value = res.message || '登录失败'
     }
   } catch (error) {
     console.error(error)
@@ -72,7 +74,6 @@ async function submit() {
   } finally {
     loading.value = false
   }
-
 }
 
 </script>

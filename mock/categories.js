@@ -1,5 +1,7 @@
 // 模拟分类数据
 let categories = [
+
+
   {
     id: 1,
     name: '电子产品',
@@ -481,6 +483,147 @@ export default [
           code: 1,
           message: '分类不存在'
         }
+      }
+    }
+  },
+
+  // 批量删除分类
+  {
+    url: '/api/categories/batch-delete',
+    method: 'post',
+    response: ({ body }) => {
+      const { ids } = body
+      let deletedCount = 0
+      ids.forEach(id => {
+        const index = categories.findIndex(category => category.id === id)
+        if (index > -1) {
+          categories.splice(index, 1)
+          deletedCount++
+        }
+      })
+      return {
+        code: 0,
+        message: `成功删除 ${deletedCount} 个分类`,
+        data: { deletedCount }
+      }
+    }
+  },
+
+  // 获取分类统计
+  {
+    url: '/api/categories/stats',
+    method: 'get',
+    response: () => {
+      const total = categories.length
+      const active = categories.filter(c => c.status === 1).length
+      const inactive = categories.filter(c => c.status === 0).length
+      const withProducts = categories.filter(c => c.productCount > 0).length
+
+      return {
+        code: 0,
+        data: {
+          total,
+          active,
+          inactive,
+          withProducts
+        }
+      }
+    }
+  },
+
+  // 切换分类状态
+  {
+    url: '/api/categories/:id/toggle-status',
+    method: 'put',
+    response: ({ url }) => {
+      
+      const urlParts = url.split('/')
+      const idIndex = urlParts.findIndex(part => part === 'categories') + 1
+      const id = parseInt(urlParts[idIndex])
+
+      const category = categories.find(c => c.id === id)
+      if (category) {
+        category.status = category.status === 1 ? 0 : 1
+        return {
+          code: 0,
+          message: '状态切换成功',
+          data: { status: category.status }
+        }
+      } else {
+        return {
+          code: 1,
+          message: '分类不存在'
+        }
+      }
+    }
+  },
+
+  // 批量启用分类
+  {
+    url: '/api/categories/batch-enable',
+    method: 'post',
+    response: ({ body }) => {
+      const { ids } = body
+      let enabledCount = 0
+      ids.forEach(id => {
+        const category = categories.find(c => c.id === id)
+        if (category && category.status === 0) {
+          category.status = 1
+          enabledCount++
+        }
+      })
+      return {
+        code: 0,
+        message: `成功启用 ${enabledCount} 个分类`,
+        data: { enabledCount }
+      }
+    }
+  },
+
+  // 批量禁用分类
+  {
+    url: '/api/categories/batch-disable',
+    method: 'post',
+    response: ({ body }) => {
+      const { ids } = body
+      let disabledCount = 0
+      ids.forEach(id => {
+        const category = categories.find(c => c.id === id)
+        if (category && category.status === 1) {
+          category.status = 0
+          disabledCount++
+        }
+      })
+      return {
+        code: 0,
+        message: `成功禁用 ${disabledCount} 个分类`,
+        data: { disabledCount }
+      }
+    }
+  },
+
+  // 导出分类数据
+  {
+    url: '/api/categories/export',
+    method: 'get',
+    response: ({ query }) => {
+      let exportData = categories
+
+      // 应用过滤条件
+      if (query.keyword) {
+        exportData = categories.filter(category =>
+          category.name.includes(query.keyword) ||
+          category.description.includes(query.keyword)
+        )
+      }
+      if (query.status !== undefined && query.status !== '') {
+        exportData = exportData.filter(category => category.status == query.status)
+      }
+
+      return {
+        code: 0,
+        data: exportData,
+        message: `导出 ${exportData.length} 条分类数据`
       }
     }
   }

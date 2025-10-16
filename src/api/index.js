@@ -1,0 +1,10 @@
+// API统一入口文件
+export * from './categories.js'
+export * from './customers.js'
+export * from './inventory.js'
+export * from './orders.js'
+export * from './products.js'
+export * from './promotions.js'
+export * from './reviews.js'
+export * from './shippings.js'
+export * from './user.js'

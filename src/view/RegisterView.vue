@@ -56,8 +56,8 @@
 
 <script setup>
 import { reactive, ref } from 'vue'
-import axios from 'axios'
 import { useRouter } from 'vue-router'
+import { register } from '@/api'
 const router = useRouter()
 const message = ref('')
 const loading = ref(false)
@@ -84,17 +84,17 @@ async function submit() {
 
   loading.value = true
   try {
-    const payload = {
+    const res = await register({
       username: form.username,
       email: form.email,
-      password: form.password
-    }
-    const res = await axios.post('/api/register', payload)
-    if (res?.data?.code === 0) {
+      password: form.password,
+      confirm: form.confirm
+    })
+    if (res.code === 0) {
       message.value = '注册成功，正在跳转到登录页…'
       setTimeout(() => router.push('/login'), 800)
     } else {
-      message.value = res?.data?.message || '注册失败'
+      message.value = res.message || '注册失败'
     }
   } catch (err) {
     message.value = err?.response?.data?.message || err.message || '网络错误'

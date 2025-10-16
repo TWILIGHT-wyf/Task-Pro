@@ -41,5 +41,40 @@ export default [
       // 返回模拟成功（不保存真实用户）
       return { code: 0, data: { id: Math.floor(Math.random()*10000)+1, username, email } }
     }
+  },
+  {
+    url: '/api/user',
+    method: 'put',
+    response: ({ body, headers }) => {
+      if ((headers.authorization || '') === 'Bearer demo-token-123') {
+        return { code: 0, data: { id:1, username:'demo', name:'管理员', ...body } }
+      }
+      return { code: 401, message: '未登录' }
+    }
+  },
+  {
+    url: '/api/user/password',
+    method: 'put',
+    response: ({ body, headers }) => {
+      if ((headers.authorization || '') === 'Bearer demo-token-123') {
+        const { oldPassword, newPassword } = body || {}
+        if (!oldPassword || !newPassword) {
+          return { code: 400, message: '请填写完整信息' }
+        }
+        // 简单验证：假设旧密码是正确的
+        return { code: 0, message: '密码修改成功' }
+      }
+      return { code: 401, message: '未登录' }
+    }
+  },
+  {
+    url: '/api/logout',
+    method: 'post',
+    response: ({ headers }) => {
+      if ((headers.authorization || '') === 'Bearer demo-token-123') {
+        return { code: 0, message: '退出成功' }
+      }
+      return { code: 401, message: '未登录' }
+    }
   }
 ]

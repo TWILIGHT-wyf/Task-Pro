@@ -4,7 +4,7 @@
       <span class="search-icon">🔍</span>
       <input
         type="text"
-        placeholder="搜索分类名称..."
+        :placeholder="placeholder"
         class="search-input"
         v-model="keyword"
         @keyup.enter="handleSearch"
@@ -16,6 +16,14 @@
 
 <script setup>
 import { ref, watch } from 'vue'
+
+defineProps({
+  placeholder: {
+    type: String,
+    default: '搜索...'
+  }
+})
+
 const keyword = ref('')
 const emit = defineEmits('search')
 const handleSearch = () => {
