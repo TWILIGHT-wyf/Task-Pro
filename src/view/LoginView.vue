@@ -38,11 +38,15 @@
 
 <script setup>
 import { reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { login } from '@/api'
+import { useRouter, useRoute } from 'vue-router'
+import { useUserStore } from '@/stores/user'
+
 const error = ref('')
 const router = useRouter()
+const route = useRoute()
 const loading = ref(false)
+const userStore = useUserStore()
+
 const form = reactive({
   username: '',
   password: '',
@@ -51,31 +55,35 @@ const form = reactive({
 
 async function submit() {
   error.value = ''
-  if (!form.username || !form.password){
-    error.value = '请输入用户名或密码'
+  if (!form.username || !form.password) {
+    error.value = '请输入用户名和密码'
     return
   }
+
   loading.value = true
   try {
-    const res = await login({
+    await userStore.login({
       username: form.username,
       password: form.password
     })
-    if (res.code === 0) {
-      const token = res.data.token
-      localStorage.setItem('token', token)
-      router.push('/')
+
+    // 登录成功，跳转到目标页面或首页
+    const redirect = route.query.redirect || '/'
+    router.push(redirect)
+  } catch (err) {
+    console.error('登录失败:', err)
+    // 显示错误信息
+    if (err.response?.data?.message) {
+      error.value = err.response.data.message
+    } else if (err.message) {
+      error.value = err.message
     } else {
-      error.value = res.message || '登录失败'
+      error.value = '用户名或密码错误'
     }
-  } catch (error) {
-    console.error(error)
-    error.value = '网络或服务器错误'
   } finally {
     loading.value = false
   }
 }
-
 </script>
 
 <style scoped>

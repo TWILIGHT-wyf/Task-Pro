@@ -12,10 +12,10 @@
 
 
     <section class="kpi-row">
-      <div class="kpi-card" v-for="k in 4" :key="k">
-        <div class="kpi-title">指标名称</div>
-        <div class="kpi-value">—</div>
-        <div class="kpi-note">说明 / 辅助信息</div>
+      <div class="kpi-card" v-for="(item, key) in stats" :key="key">
+        <div class="kpi-title">{{ item.title }}</div>
+        <div class="kpi-value">{{ item.value }}</div>
+        <div class="kpi-note">{{ item.note }} <span style="color: #10b981;">{{ item.trend }}</span></div>
       </div>
     </section>
 
@@ -35,14 +35,14 @@
         <div class="top-products-card">
           <div class="card-head">热销商品 Top 5</div>
           <div class="top-products-list">
-            <div class="product-item" v-for="i in 5" :key="i">
-              <div class="rank">{{ i }}</div>
+            <div class="product-item" v-for="(product, index) in topProducts" :key="product.id">
+              <div class="rank">{{ index + 1 }}</div>
               <div class="thumb" aria-hidden></div>
               <div class="meta">
-                <div class="name">示例商品名称 {{ i }}</div>
-                <div class="stats">售出 <span class="num">--</span> 件</div>
+                <div class="name">{{ product.name }}</div>
+                <div class="stats">售出 <span class="num">{{ product.sales }}</span> 件</div>
               </div>
-              <div class="bar"><i :style="{ width: (60 - i*6) + '%' }"></i></div>
+              <div class="bar"><i :style="{ width: product.percent + '%' }"></i></div>
             </div>
           </div>
         </div>
@@ -60,9 +60,12 @@
                 <tr><th>订单号</th><th>用户</th><th>金额</th><th>状态</th></tr>
               </thead>
               <tbody>
-                <tr><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-                <tr><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-                <tr><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+                <tr v-for="order in recentOrders" :key="order.id">
+                  <td>{{ order.id }}</td>
+                  <td>{{ order.customer }}</td>
+                  <td>¥{{ order.amount.toLocaleString() }}</td>
+                  <td><span :class="['status-badge', order.statusColor]">{{ order.status }}</span></td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -78,29 +81,33 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import * as echarts from 'echarts'
+import { getDashboardStats, getDashboardChart, getDashboardRank } from '@/api/dashboard'
 
 let chart = null
 let mapChart = null
 
 const chartRef = ref(null)
-
 const range = ref('day')
 
-const chartData = ref({
-  day: {
-    x: ['00:00','04:00','08:00','12:00','16:00','20:00','24:00'],
-    series: [10, 40, 120, 200, 150, 90, 30]
-  },
-  week: {
-    x: ['周一','周二','周三','周四','周五','周六','周日'],
-    series: [120, 200, 150, 80, 70, 110, 130]
-  },
-  month: {
-    x: Array.from({length: 30}).map((_,i)=>`${i+1}日`),
-    series: Array.from({length: 30}).map(()=>Math.round(50 + Math.random()*200))
-  }
+// 统计数据
+const stats = ref({
+  sales: { title: '总销售额', value: '—', trend: '', note: '' },
+  orders: { title: '订单总数', value: '—', trend: '', note: '' },
+  users: { title: '新增用户', value: '—', trend: '', note: '' },
+  conversion: { title: '转化率', value: '—', trend: '', note: '' }
 })
 
+// 图表数据
+const chartData = ref({
+  x: [],
+  series: []
+})
+
+// 热销商品
+const topProducts = ref([])
+
+// 最近订单
+const recentOrders = ref([])
 
 const ordersByProvince = {
   '北京市': 320,
@@ -127,6 +134,38 @@ const ordersByProvince = {
   '山西省': 50,
   '陕西省': 65,
   '贵州省': 40
+}
+
+// 加载统计数据
+async function loadStats() {
+  try {
+    const res = await getDashboardStats()
+    stats.value = res.data
+  } catch (error) {
+    console.error('加载统计数据失败:', error)
+  }
+}
+
+// 加载图表数据
+async function loadChartData(type = 'day') {
+  try {
+    const res = await getDashboardChart(type)
+    chartData.value = res.data
+    updateChartData()
+  } catch (error) {
+    console.error('加载图表数据失败:', error)
+  }
+}
+
+// 加载排行数据
+async function loadRankData() {
+  try {
+    const res = await getDashboardRank()
+    topProducts.value = res.data.topProducts || []
+    recentOrders.value = res.data.recentOrders || []
+  } catch (error) {
+    console.error('加载排行数据失败:', error)
+  }
 }
 
 function getOption(data) {
@@ -246,23 +285,36 @@ function resizeChart() {
 }
 const debouncedResize = debounce(resizeChart, 150)
 
-function setRange(r) {
+async function setRange(r) {
   if (range.value === r) return
   range.value = r
-  updateChartData()
+  await loadChartData(r)
 }
 
 function updateChartData() {
-  const d = chartData.value[range.value] || chartData.value.week
-  if (chart) chart.setOption(getOption(d), { notMerge: false })
+  if (chart && chartData.value.x && chartData.value.series) {
+    chart.setOption(getOption(chartData.value), { notMerge: false })
+  }
 }
 
-onMounted(() => {
+onMounted(async () => {
+  // 加载所有数据
+  await Promise.all([
+    loadStats(),
+    loadChartData('day'),
+    loadRankData()
+  ])
+
+  // 初始化图表
   const el = chartRef.value || document.getElementById('trend-chart')
-  if (!el) return
-  chart = echarts.init(el)
-  updateChartData()
+  if (el) {
+    chart = echarts.init(el)
+    updateChartData()
+  }
+
+  // 初始化地图
   initMap()
+
   window.addEventListener('resize', debouncedResize)
 })
 
@@ -272,8 +324,8 @@ onUnmounted(() => {
   mapChart?.dispose()
 })
 
-watch(chartData, (v) => {
-  if (chart) chart.setOption(getOption(v), { notMerge: false })
+watch(chartData, () => {
+  updateChartData()
 }, { deep: true })
 
 
@@ -493,6 +545,29 @@ watch(chartData, (v) => {
   display: block;
   height: 100%;
   background: linear-gradient(90deg, #60a5fa, #0066cc);
+}
+
+.status-badge {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.status-badge.success {
+  background: #d1fae5;
+  color: #065f46;
+}
+.status-badge.primary {
+  background: #dbeafe;
+  color: #1e40af;
+}
+.status-badge.warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+.status-badge.info {
+  background: #e0e7ff;
+  color: #3730a3;
 }
 
 </style>
