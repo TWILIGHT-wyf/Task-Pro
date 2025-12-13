@@ -276,12 +276,12 @@ const promotionFilterConfigs = [
 
 // 排序配置
 const promotionSortConfigs = [
-  { key: 'name', label: '促销名称' },
-  { key: 'startDate', label: '开始时间' },
-  { key: 'endDate', label: '结束时间' },
-  { key: 'priority', label: '优先级' },
-  { key: 'participants', label: '参与人数' },
-  { key: 'totalDiscount', label: '累计优惠' }
+  { value: 'name', label: '促销名称' },
+  { value: 'startDate', label: '开始时间' },
+  { value: 'endDate', label: '结束时间' },
+  { value: 'priority', label: '优先级' },
+  { value: 'participants', label: '参与人数' },
+  { value: 'totalDiscount', label: '累计优惠' }
 ]
 
 // 促销详情配置

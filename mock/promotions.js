@@ -446,7 +446,8 @@ export default [
     url: '/api/promotions/:id/toggle-status',
     method: 'put',
     response: ({ url }) => {
-      const id = parseInt(url.split('/').pop())
+      const match = url.match(/\/api\/promotions\/(\d+)\/toggle-status/)
+      const id = match ? parseInt(match[1]) : NaN
       const promotion = promotions.find(p => p.id === id)
       if (promotion) {
         promotion.status = promotion.status === 1 ? 0 : 1

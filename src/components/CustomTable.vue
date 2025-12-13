@@ -88,7 +88,8 @@
 </template>
 
 <script setup>
-import { ref, h, watch } from 'vue'
+import { ref, h, watch, resolveComponent } from 'vue'
+import { PictureFilled } from '@element-plus/icons-vue'
 
 const DefaultTextCell = {
   name: 'DefaultTextCell',
@@ -99,14 +100,52 @@ const DefaultTextCell = {
     statusTextMap: { type: Object, default: () => ({}) }
   },
   setup(props) {
+    const ElImage = resolveComponent('ElImage')
+    const ElIcon = resolveComponent('ElIcon')
+    const ElAvatar = resolveComponent('ElAvatar')
+    const ElTag = resolveComponent('ElTag')
+
+    const renderImagePlaceholder = () =>
+      h('div', { class: 'image-placeholder' }, [
+        h(ElIcon, { size: 18, class: 'image-placeholder__icon' }, () => h(PictureFilled))
+      ])
+
     return () => {
       const { header, value, item, statusTextMap } = props
+
+      // image 类型需要在空值时也给出明确占位
+      if (header?.type === 'image') {
+        const previewList = Array.isArray(value)
+          ? value.filter(Boolean)
+          : value
+            ? [value]
+            : []
+
+        const imgSrc = previewList[0]
+        if (!imgSrc) return renderImagePlaceholder()
+
+        return h(
+          ElImage,
+          {
+            src: imgSrc,
+            style: { width: '50px', height: '50px' },
+            fit: 'cover',
+            previewSrcList: previewList,
+            previewTeleported: true
+          },
+          {
+            placeholder: () => renderImagePlaceholder(),
+            error: () => renderImagePlaceholder()
+          }
+        )
+      }
+
       if (value == null) return h('span', { class: 'text-gray-400' }, '-')
 
       switch (header?.type) {
         case 'avatar':
           return h('div', { class: 'cell-avatar' }, [
-            h('el-avatar', { size: 32, src: item?.avatar }),
+            h(ElAvatar, { size: 32, src: item?.avatar }),
             h('span', { style: 'margin-left: 8px' }, String(value))
           ])
         case 'email':
@@ -116,37 +155,12 @@ const DefaultTextCell = {
         case 'status-badge': {
           const statusText = statusTextMap[value] || value
           const isActive = ['active', 'on', '上架', '活跃', '正常', 1, '1'].includes(value)
-          return h('el-tag', { type: isActive ? 'success' : 'info', size: 'small' }, () => statusText)
+          return h(ElTag, { type: isActive ? 'success' : 'info', size: 'small' }, () => statusText)
         }
         case 'currency':
           return h('span', { class: 'text-price' }, `¥${Number(value).toFixed(2)}`)
         case 'date':
           return h('span', new Date(value).toLocaleString('zh-CN'))
-        case 'image': {
-          const previewList = Array.isArray(value)
-            ? value.filter(Boolean)
-            : value
-              ? [value]
-              : []
-
-          const imgSrc = previewList[0]
-          if (!imgSrc) return h('span', { class: 'text-gray-400' }, '无图片')
-
-          return h(
-            'el-image',
-            {
-              src: imgSrc,
-              style: 'width: 50px; height: 50px',
-              fit: 'cover',
-              lazy: true,
-              previewSrcList: previewList,
-              previewTeleported: true
-            },
-            {
-              error: () => h('span', { class: 'text-gray-400' }, '图片加载失败')
-            }
-          )
-        }
         default:
           return h('span', String(value))
       }
@@ -220,6 +234,7 @@ watch(() => props.selectedIds, (newIds) => {
   })
 }, { immediate: true, deep: true })
 
+
 defineExpose({
   clearSelection: () => tableRef.value?.clearSelection(),
   toggleRowSelection: (row, selected) => tableRef.value?.toggleRowSelection(row, selected)
@@ -246,6 +261,21 @@ defineExpose({
 }
 
 .text-gray-400 {
+  color: #9ca3af;
+}
+
+.image-placeholder {
+  width: 50px;
+  height: 50px;
+  border: 1px dashed #d1d5db;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f9fafb;
+}
+
+.image-placeholder__icon {
   color: #9ca3af;
 }
 

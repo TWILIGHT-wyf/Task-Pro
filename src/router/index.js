@@ -70,16 +70,10 @@ const constantRoutes = [
     component: () => import('@/view/ForbiddenView.vue'),
     meta: { requiresAuth: false }
   },
-  {
-    path: '/404',
-    name: 'not-found',
-    component: () => import('@/view/NotFoundView.vue'),
-    meta: { requiresAuth: false }
-  },
-  // 兜底 404
+  // 兜底：未匹配路由重定向到首页
   {
     path: '/:pathMatch(.*)*',
-    redirect: '/404'
+    redirect: '/'
   }
 ]
 

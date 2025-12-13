@@ -396,11 +396,11 @@ const inventoryFilterConfigs = [
 
 // 排序配置
 const inventorySortConfigs = [
-  { key: 'productName', label: '商品名称' },
-  { key: 'currentStock', label: '当前库存' },
-  { key: 'unitCost', label: '单价' },
-  { key: 'totalValue', label: '总价值' },
-  { key: 'lastUpdated', label: '最后更新' }
+  { value: 'productName', label: '商品名称' },
+  { value: 'currentStock', label: '当前库存' },
+  { value: 'unitCost', label: '单价' },
+  { value: 'totalValue', label: '总价值' },
+  { value: 'lastUpdated', label: '最后更新' }
 ]
 
 // 查看详情状态

@@ -58,8 +58,8 @@
     <!-- 分页 - 添加 total 和 pageSize -->
     <div class="pagination-section card-white">
       <CustomPagination
-        v-model:currentPage="currentPage"
-        v-model:pageSize="pageSize"
+        :currentPage="currentPage"
+        :pageSize="pageSize"
         :total="total"
         @page-change="handlePageChange"
         @size-change="handleSizeChange"
