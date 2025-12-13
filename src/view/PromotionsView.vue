@@ -7,9 +7,9 @@
         <div class="subtitle">促销管理 — 促销活动列表</div>
       </div>
       <div class="header-actions">
-        <button class="btn-base btn-primary" @click="showAddModal">
-          <span>➕</span> 新建促销
-        </button>
+        <el-button type="primary" @click="showAddModal">
+          <el-icon><Plus /></el-icon> 新建促销
+        </el-button>
       </div>
     </header>
 
@@ -17,28 +17,28 @@
     <div class="stats-section">
       <div class="stats-grid">
         <div class="stat-card card-white">
-          <div class="stat-icon">🎯</div>
+          <div class="stat-icon"><el-icon><Aim /></el-icon></div>
           <div class="stat-content">
             <div class="stat-value">{{ totalPromotions }}</div>
             <div class="stat-label">总促销活动</div>
           </div>
         </div>
         <div class="stat-card card-white">
-          <div class="stat-icon">🔥</div>
+          <div class="stat-icon"><el-icon><TrendCharts /></el-icon></div>
           <div class="stat-content">
             <div class="stat-value">{{ activePromotions }}</div>
             <div class="stat-label">进行中活动</div>
           </div>
         </div>
         <div class="stat-card card-white">
-          <div class="stat-icon">💰</div>
+          <div class="stat-icon"><el-icon><Coin /></el-icon></div>
           <div class="stat-content">
             <div class="stat-value">{{ totalDiscount.toFixed(2) }}</div>
             <div class="stat-label">累计优惠金额</div>
           </div>
         </div>
         <div class="stat-card card-white">
-          <div class="stat-icon">📈</div>
+          <div class="stat-icon"><el-icon><UserFilled /></el-icon></div>
           <div class="stat-content">
             <div class="stat-value">{{ totalParticipants }}</div>
             <div class="stat-label">参与人数</div>
@@ -76,8 +76,8 @@
         :data="promotions"
         :selected-ids="selectedIds"
         :headers="promotionHeaders"
-        @select="handleSelect"
-        @select-all="handleSelectAll"
+        :loading="loading"
+        @selection-change="handleSelectionChange"
         @edit="handleEdit"
         @delete="handleDelete"
         @view="handleView"
@@ -88,27 +88,27 @@
     <div class="pagination-section card-white">
       <CustomPagination
         :currentPage="currentPage"
-        :totalPages="totalPages"
-        @prev="handlePrevPage"
-        @next="handleNextPage"
+        :pageSize="pageSize"
+        :total="total"
+        @page-change="handlePageChange"
+        @size-change="handleSizeChange"
       />
     </div>
   </div>
 
   <!-- 新建/编辑促销模态框 -->
   <AddModal
-    :visible="addModal.visible"
+    v-model:visible="addModal.visible"
     :title="addModal.isEdit ? '编辑促销' : '新建促销'"
-    icon="🎯"
+    icon=""
     :fields="promotionFields"
     :is-edit-mode="addModal.isEdit"
     :edit-data="addModal.editData"
-    @close="addModal.visible = false"
     @submit="handleSubmitPromotion"
   />
 
   <ConfirmModal
-    :visible="confirmModal.visible"
+    v-model:visible="confirmModal.visible"
     :title="confirmModal.title"
     :message="confirmModal.message"
     :type="confirmModal.type"
@@ -119,11 +119,10 @@
 
   <!-- 促销详情模态框 -->
   <DetailModal
-    :visible="showDetailModal"
+    v-model:visible="showDetailModal"
     :data="currentPromotion"
     title="促销详情"
     :sections="promotionDetailSections"
-    @close="showDetailModal = false"
     @edit="handleEditFromDetail"
   />
 </template>
@@ -131,6 +130,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Plus, Aim, TrendCharts, Coin, UserFilled } from '@element-plus/icons-vue'
 import CustomTable from '../components/CustomTable.vue'
 import CustomFilter from '../components/CustomFilter.vue'
 import CustomPagination from '../components/CustomPagination.vue'
@@ -155,17 +155,14 @@ import {
 const {
   currentPage,
   pageSize,
-  totalPages,
+  total,
+  loading,
   selectedIds,
   data: promotions,
   fetchData,
-  handleNextPage,
-  handlePrevPage,
   handleSearch,
   handleFilter,
   handleSort,
-  handleSelect,
-  handleSelectAll,
   handleDelete,
   handleBatchDelete,
   confirmModal,
@@ -565,13 +562,35 @@ const handleExport = async (format = 'xlsx') => {
     ElMessage.error('导出失败，请重试')
   }
 }
+
+// 分页事件处理
+const handlePageChange = async (page) => {
+  currentPage.value = page
+  await fetchData()
+}
+
+const handleSizeChange = async (size) => {
+  pageSize.value = size
+  currentPage.value = 1
+  await fetchData()
+}
+
+// 表格选择变化处理
+const handleSelectionChange = (selection) => {
+  selectedIds.value = selection.map(item => item.id)
+}
 </script>
 
 <style lang="scss" scoped>
 .promotions-page {
-  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  padding: 18px;
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 0;
   background: #f5f7fa;
-  min-height: 100vh;
+  overflow: hidden;
 }
 
 // 页面头部
@@ -673,6 +692,8 @@ const handleExport = async (format = 'xlsx') => {
 
 // 表格卡片
 .table-card {
+  flex: 1 1 auto;
+  min-height: 0;
   margin-bottom: 16px;
   overflow: visible;
 }
@@ -682,6 +703,7 @@ const handleExport = async (format = 'xlsx') => {
   padding: 16px 20px;
   display: flex;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 // 按钮样式扩展

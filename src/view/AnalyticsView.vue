@@ -19,7 +19,7 @@
     <!-- 数据概览卡片 -->
     <div class="overview-cards">
       <div class="stat-card card-white">
-        <div class="stat-icon" style="background: #dbeafe; color: #3b82f6;">📊</div>
+        <div class="stat-icon" style="background: #dbeafe; color: #3b82f6;"><el-icon><DataLine /></el-icon></div>
         <div class="stat-content">
           <div class="stat-label">总销售额</div>
           <div class="stat-value">¥{{ formatNumber(analytics.totalSales) }}</div>
@@ -30,7 +30,7 @@
       </div>
 
       <div class="stat-card card-white">
-        <div class="stat-icon" style="background: #dcfce7; color: #10b981;">🛒</div>
+        <div class="stat-icon" style="background: #dcfce7; color: #10b981;"><el-icon><ShoppingCart /></el-icon></div>
         <div class="stat-content">
           <div class="stat-label">订单数量</div>
           <div class="stat-value">{{ formatNumber(analytics.totalOrders) }}</div>
@@ -41,7 +41,7 @@
       </div>
 
       <div class="stat-card card-white">
-        <div class="stat-icon" style="background: #fef3c7; color: #f59e0b;">👥</div>
+        <div class="stat-icon" style="background: #fef3c7; color: #f59e0b;"><el-icon><User /></el-icon></div>
         <div class="stat-content">
           <div class="stat-label">新增会员</div>
           <div class="stat-value">{{ formatNumber(analytics.newCustomers) }}</div>
@@ -52,12 +52,12 @@
       </div>
 
       <div class="stat-card card-white">
-        <div class="stat-icon" style="background: #fce7f3; color: #ec4899;">⭐</div>
+        <div class="stat-icon" style="background: #fce7f3; color: #ec4899;"><el-icon><Star /></el-icon></div>
         <div class="stat-content">
           <div class="stat-label">平均评分</div>
           <div class="stat-value">{{ analytics.avgRating.toFixed(1) }}</div>
           <div class="stat-trend trend-up">
-            ⭐ 优秀
+            优秀
           </div>
         </div>
       </div>
@@ -68,7 +68,7 @@
       <!-- 销售趋势 -->
       <div class="chart-card card-white">
         <div class="chart-header">
-          <h3 class="chart-title">📈 销售趋势</h3>
+          <h3 class="chart-title">销售趋势</h3>
         </div>
         <div class="chart-body">
           <v-chart :option="salesTrendOption" :autoresize="true" style="height: 350px;" />
@@ -78,7 +78,7 @@
       <!-- 商品分类占比 -->
       <div class="chart-card card-white">
         <div class="chart-header">
-          <h3 class="chart-title">🎯 商品分类销售占比</h3>
+          <h3 class="chart-title">商品分类销售占比</h3>
         </div>
         <div class="chart-body">
           <v-chart :option="categoryPieOption" :autoresize="true" style="height: 350px;" />
@@ -91,7 +91,7 @@
       <!-- 订单状态分布 -->
       <div class="chart-card card-white">
         <div class="chart-header">
-          <h3 class="chart-title">📦 订单状态分布</h3>
+          <h3 class="chart-title">订单状态分布</h3>
         </div>
         <div class="chart-body">
           <v-chart :option="orderStatusOption" :autoresize="true" style="height: 350px;" />
@@ -101,7 +101,7 @@
       <!-- 每日访问量趋势 -->
       <div class="chart-card card-white">
         <div class="chart-header">
-          <h3 class="chart-title">👁️ 访问量趋势</h3>
+          <h3 class="chart-title">访问量趋势</h3>
         </div>
         <div class="chart-body">
           <v-chart :option="visitTrendOption" :autoresize="true" style="height: 350px;" />
@@ -114,14 +114,14 @@
       <!-- 热销商品 -->
       <div class="ranking-card card-white">
         <div class="card-header">
-          <h3 class="card-title">🔥 热销商品 TOP 10</h3>
+          <h3 class="card-title">热销商品 TOP 10</h3>
         </div>
         <div class="ranking-list">
           <div v-for="(item, index) in topProducts" :key="index" class="ranking-item">
             <div class="ranking-number" :class="{ 'top-three': index < 3 }">{{ index + 1 }}</div>
             <div class="ranking-content">
               <div class="ranking-name">{{ item.name }}</div>
-              <div class="ranking-info">销量: {{ item.sales }} | 评分: {{ item.rating }}⭐</div>
+              <div class="ranking-info">销量: {{ item.sales }} | 评分: {{ item.rating }}</div>
             </div>
             <div class="ranking-value">¥{{ formatNumber(item.revenue) }}</div>
           </div>
@@ -131,7 +131,7 @@
       <!-- 活跃会员 -->
       <div class="ranking-card card-white">
         <div class="card-header">
-          <h3 class="card-title">👑 活跃会员 TOP 10</h3>
+          <h3 class="card-title">活跃会员 TOP 10</h3>
         </div>
         <div class="ranking-list">
           <div v-for="(item, index) in topCustomers" :key="index" class="ranking-item">
@@ -161,6 +161,7 @@ import {
   GridComponent
 } from 'echarts/components'
 import { formatNumber, getDateRange } from '@/utils/format'
+import { DataLine, ShoppingCart, User, Star } from '@element-plus/icons-vue'
 
 // 注册 ECharts 组件
 use([

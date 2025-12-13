@@ -1,33 +1,39 @@
 <template>
-  <div class="modal-overlay" v-show="visible" @click.self="handleCancel">
-    <div class="modal-content">
-      <div class="modal-header">
-        <div class="header-title">
-          <span class="icon">{{ type === 'danger' ? '⚠️' : '❓' }}</span>
-          <h3>{{ title }}</h3>
-        </div>
-        <button class="close-btn" @click="handleCancel">
-          <span>&times;</span>
-        </button>
+  <!-- 使用 el-dialog 替代手写确认弹窗 -->
+  <el-dialog
+    v-model="dialogVisible"
+    :title="title"
+    width="420px"
+    :close-on-click-modal="false"
+    destroy-on-close
+    @close="handleCancel"
+  >
+    <template #header>
+      <div class="dialog-header">
+        <el-icon :size="22" :color="type === 'danger' ? '#f56c6c' : '#409eff'">
+          <WarningFilled v-if="type === 'danger'" />
+          <QuestionFilled v-else />
+        </el-icon>
+        <span>{{ title }}</span>
       </div>
-      <div class="modal-body">
-        <p class="modal-message">{{ message }}</p>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-base btn-secondary-outline" @click="handleCancel">
-          取消
-        </button>
-        <button :class="['btn-base', type === 'danger' ? 'btn-danger' : 'btn-primary']" @click="handleConfirm">
-          <span>{{ confirmText }}</span>
-        </button>
-      </div>
-    </div>
-  </div>
+    </template>
+
+    <p class="confirm-message">{{ message }}</p>
+
+    <template #footer>
+      <el-button @click="handleCancel">取消</el-button>
+      <el-button :type="type === 'danger' ? 'danger' : 'primary'" @click="handleConfirm">
+        {{ confirmText }}
+      </el-button>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup>
+import { computed } from 'vue'
+import { WarningFilled, QuestionFilled } from '@element-plus/icons-vue'
 
-defineProps({
+const props = defineProps({
   visible: {
     type: Boolean,
     default: false
@@ -42,7 +48,7 @@ defineProps({
   },
   type: {
     type: String,
-    default: 'primary', // 'primary' | 'danger'
+    default: 'primary',
     validator: (value) => ['primary', 'danger'].includes(value)
   },
   confirmText: {
@@ -51,129 +57,37 @@ defineProps({
   }
 })
 
-const emit = defineEmits(['confirm', 'cancel'])
+const emit = defineEmits(['confirm', 'cancel', 'update:visible'])
+
+const dialogVisible = computed({
+  get: () => props.visible,
+  set: (val) => emit('update:visible', val)
+})
 
 const handleConfirm = () => {
   emit('confirm')
+  emit('update:visible', false)
 }
 
 const handleCancel = () => {
   emit('cancel')
+  emit('update:visible', false)
 }
 </script>
 
 <style lang="scss" scoped>
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(2px);
+.dialog-header {
   display: flex;
-  justify-content: center;
   align-items: center;
-  z-index: 1000;
-  animation: fadeIn 0.2s ease;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.modal-content {
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  max-width: 420px;
-  width: 90%;
-  animation: slideUp 0.3s ease;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 24px 16px;
-  border-bottom: 1px solid #e5e7eb;
-
-  .header-title {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-
-    .icon {
-      font-size: 20px;
-    }
-
-    h3 {
-      margin: 0;
-      font-size: 18px;
-      font-weight: 600;
-      color: #111827;
-    }
-  }
-
-  .close-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 0;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 6px;
-    transition: all 0.2s ease;
-
-    span {
-      font-size: 24px;
-      color: #9ca3af;
-    }
-
-    &:hover {
-      background: #fee2e2;
-
-      span {
-        color: #dc2626;
-      }
-    }
-  }
-}
-
-.modal-body {
-  padding: 20px 24px;
-
-  .modal-message {
-    margin: 0;
-    font-size: 14px;
-    color: #4b5563;
-    line-height: 1.5;
-  }
-}
-
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 16px 24px 20px;
+.confirm-message {
+  margin: 0;
+  font-size: 14px;
+  color: var(--el-text-color-regular);
+  line-height: 1.6;
 }
 </style>

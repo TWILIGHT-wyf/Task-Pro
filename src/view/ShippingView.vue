@@ -7,9 +7,9 @@
         <div class="subtitle">配送管理 — 配送列表</div>
       </div>
       <div class="header-actions">
-        <button class="btn-base btn-primary" @click="showAddModal">
-          <span>➕</span> 添加配送
-        </button>
+        <el-button type="primary" @click="showAddModal">
+          <el-icon><Plus /></el-icon> 添加配送
+        </el-button>
       </div>
     </header>
 
@@ -43,8 +43,8 @@
         :selected-ids="selectedIds"
         :headers="shippingHeaders"
         :status-text-map="{ pending: '待发货', processing: '处理中', shipped: '已发货', delivered: '已送达', cancelled: '已取消' }"
-        @select="handleSelect"
-        @select-all="handleSelectAll"
+        :loading="loading"
+        @selection-change="handleSelectionChange"
         @edit="handleEdit"
         @delete="handleDelete"
         @view="handleView"
@@ -56,37 +56,36 @@
     <div class="pagination-section card-white">
       <CustomPagination
         :currentPage="currentPage"
-        :totalPages="totalPages"
-        @prev="handlePrevPage"
-        @next="handleNextPage"
+        :pageSize="pageSize"
+        :total="total"
+        @page-change="handlePageChange"
+        @size-change="handleSizeChange"
       />
     </div>
 
     <!-- 添加/编辑配送模态框 -->
     <AddModal
-      :visible="showModal"
+      v-model:visible="showModal"
       title="配送"
-      icon="🚚"
+      icon=""
       :fields="shippingFields"
       :is-edit-mode="isEditMode"
       :edit-data="editData"
-      @close="showModal = false"
       @submit="handleSubmitShipping"
     />
 
     <!-- 配送详情模态框 -->
     <DetailModal
-      :visible="showDetailModal"
+      v-model:visible="showDetailModal"
       :data="currentShipping"
       title="配送详情"
       :sections="shippingDetailSections"
-      @close="showDetailModal = false"
       @edit="handleEditFromDetail"
     />
 
     <!-- 确认模态框 -->
     <ConfirmModal
-      :visible="confirmModal.visible"
+      v-model:visible="confirmModal.visible"
       :title="confirmModal.title"
       :message="confirmModal.message"
       :type="confirmModal.type"
@@ -111,6 +110,8 @@ import { useTableOperations } from '@/composables/useTableOperations'
 import { createShipping, updateShipping } from '@/api/shippings'
 import { ref, onMounted } from 'vue'
 import { useResponsivePageSize } from '@/composables/useResponsivePageSize'
+import { Plus } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 
 // 初始化
 onMounted(async () => {
@@ -129,18 +130,15 @@ const batchActions = [
 const {
   currentPage,
   pageSize,
-  totalPages,
+  total,
+  loading,
   selectedIds,
   data: shippings,
   confirmModal,
   fetchData,
-  handleNextPage,
-  handlePrevPage,
   handleSearch,
   handleFilter,
   handleSort,
-  handleSelect,
-  handleSelectAll,
   handleDelete,
   handleBatchDelete,
   handleBatchStatus,
@@ -265,10 +263,10 @@ const shippingFields = ref([
     required: true,
     options: [
       { value: 'pending', label: '⏳ 待发货' },
-      { value: 'processing', label: '🔄 处理中' },
-      { value: 'shipped', label: '🚚 已发货' },
-      { value: 'delivered', label: '✓ 已送达' },
-      { value: 'cancelled', label: '✗ 已取消' }
+      { value: 'processing', label: '处理中' },
+      { value: 'shipped', label: '已发货' },
+      { value: 'delivered', label: '已送达' },
+      { value: 'cancelled', label: '已取消' }
     ],
     default: 'pending'
   },
@@ -441,14 +439,16 @@ const handleSubmitShipping = async (formData) => {
 
     if (isEditMode.value) {
       await updateShipping(processedForm.id, processedForm)
+      ElMessage.success('更新配送成功')
     } else {
       await createShipping(processedForm)
+      ElMessage.success('添加配送成功')
     }
     showModal.value = false
     await fetchData()
   } catch (error) {
     console.error('保存配送失败:', error)
-    alert('保存失败，请重试')
+    ElMessage.error('保存失败，请重试')
   }
 }
 
@@ -469,6 +469,23 @@ const handleBatchAction = (actionKey, params) => {
       handleBatchStatus('cancelled')
       break
   }
+}
+
+// 分页事件处理
+const handlePageChange = async (page) => {
+  currentPage.value = page
+  await fetchData()
+}
+
+const handleSizeChange = async (size) => {
+  pageSize.value = size
+  currentPage.value = 1
+  await fetchData()
+}
+
+// 表格选择变化处理
+const handleSelectionChange = (selection) => {
+  selectedIds.value = selection.map(item => item.id)
 }
 </script>
 

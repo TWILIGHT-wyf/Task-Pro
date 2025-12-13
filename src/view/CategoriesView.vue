@@ -8,9 +8,9 @@
         <div class="subtitle">商品分类管理 — 分类列表</div>
       </div>
       <div class="header-actions">
-        <button class="btn-base btn-primary" @click="isShow = true, isEditMode = false">
-          <span>➕</span> 添加分类
-        </button>
+        <el-button type="primary" @click="isShow = true, isEditMode = false">
+          <el-icon><Plus /></el-icon> 添加分类
+        </el-button>
       </div>
     </header>
 
@@ -50,28 +50,28 @@
     <div class="pagination-section card-white">
       <CustomPagination
         :currentPage="currentPage"
-        :totalPages="totalPages"
-        @prev="handlePrevPage"
-        @next="handleNextPage"
+        :pageSize="pageSize"
+        :total="total"
+        @page-change="handlePageChange"
+        @size-change="handleSizeChange"
       />
 
     </div>
   </div>
 
   <AddModal
-    :visible="isShow"
+    v-model:visible="isShow"
     title="分类"
-    icon="📁"
+    icon=""
     :fields="categoryFields"
     :is-edit-mode="isEditMode"
     :edit-data="editData"
-    @close="isShow = false"
     @submit="handleAddCategory"
   />
 
 
   <ConfirmModal
-    :visible="confirmModal.visible"
+    v-model:visible="confirmModal.visible"
     :title="confirmModal.title"
     :message="confirmModal.message"
     :type="confirmModal.type"
@@ -93,6 +93,8 @@ import { useTableOperations } from '@/composables/useTableOperations'
 import { getCategories, createCategory, updateCategory, deleteCategory, batchDeleteCategories, toggleCategoryStatus, batchEnableCategories, batchDisableCategories, exportCategories } from '@/api'
 import { ref, onMounted, nextTick, reactive, computed, watch } from 'vue'
 import { useResponsivePageSize } from '@/composables/useResponsivePageSize'
+import { Plus } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 
 // 初始化
 onMounted(async () => {
@@ -105,14 +107,12 @@ onMounted(async () => {
 const {
   currentPage,
   pageSize,
-  totalPages,
+  total,
   searchKeyword,
   data: categories,
   selectedIds,
   confirmModal,
   fetchData,
-  handleNextPage,
-  handlePrevPage,
   handleSelect,
   handleSearch,
   handleSelectAll,
@@ -238,8 +238,8 @@ const categoryFields = ref([
     type: 'radio',
     required: false,
     options: [
-      { value: 1, label: '✓ 启用' },
-      { value: 0, label: '✗ 禁用' }
+      { value: 1, label: '启用' },
+      { value: 0, label: '禁用' }
     ],
     default: 1
   },
@@ -278,12 +278,14 @@ const handleAddCategory = async (formData) => {
 
     if (isEditMode.value) {
       await updateCategory(processedForm.id, processedForm)
+      ElMessage.success('更新分类成功')
     } else {
       const res = await createCategory(processedForm)
       const newId = res?.data?.id
       if (newId != null) {
         extraIncludeIds.value = [newId]
       }
+      ElMessage.success('添加分类成功')
     }
 
     searchKeyword.value = ''
@@ -293,7 +295,7 @@ const handleAddCategory = async (formData) => {
     isShow.value = false
   } catch (error) {
     console.error('保存分类失败:', error)
-    alert('保存失败，请重试')
+    ElMessage.error('保存失败，请重试')
   }
 }
 
@@ -337,6 +339,18 @@ const handleBatchAction = (actionKey, params) => {
       handleBatchEnable(0)
       break
   }
+}
+
+// 分页事件处理
+const handlePageChange = async (page) => {
+  currentPage.value = page
+  await fetchData()
+}
+
+const handleSizeChange = async (size) => {
+  pageSize.value = size
+  currentPage.value = 1
+  await fetchData()
 }
 </script>
 

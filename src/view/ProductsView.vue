@@ -8,9 +8,10 @@
         <div class="subtitle">商品管理 — 商品列表</div>
       </div>
       <div class="header-actions">
-        <button class="btn-base btn-primary" @click="showAddModal">
-          <span>➕</span> 添加商品
-        </button>
+        <el-button type="primary" @click="showAddModal">
+          <el-icon><Plus /></el-icon>
+          添加商品
+        </el-button>
       </div>
     </header>
 
@@ -18,7 +19,6 @@
     <SearchBar placeholder="搜索商品名称、品牌或描述..." @search="handleSearch" />
 
     <!-- 筛选排序 -->
-        <!-- 筛选排序 -->
     <CustomFilter
       :filter-configs="productFilterConfigs"
       :sort-configs="productSortConfigs"
@@ -38,16 +38,16 @@
       </div>
     </div>
 
-    <!-- 商品列表 -->
-  <div class="table-card card-white" ref="tableCardRef">
-            <CustomTable
+    <!-- 商品列表 - 添加 loading 和 selection-change -->
+    <div class="table-card card-white" ref="tableCardRef">
+      <CustomTable
         :data="products"
         :selected-ids="selectedIds"
         :headers="productHeaders"
+        :loading="loading"
         :categories="allCategories"
         :status-text-map="{ 1: '上架', 0: '下架' }"
-        @select="handleSelect"
-        @select-all="handleSelectAll"
+        @selection-change="handleSelectionChange"
         @edit="handleEdit"
         @delete="handleDelete"
         @view="handleView"
@@ -55,21 +55,22 @@
       />
     </div>
 
-    <!-- 分页 -->
+    <!-- 分页 - 添加 total 和 pageSize -->
     <div class="pagination-section card-white">
       <CustomPagination
-        :currentPage="currentPage"
-        :totalPages="totalPages"
-        @prev="handlePrevPage"
-        @next="handleNextPage"
+        v-model:currentPage="currentPage"
+        v-model:pageSize="pageSize"
+        :total="total"
+        @page-change="handlePageChange"
+        @size-change="handleSizeChange"
       />
     </div>
 
     <!-- 添加/编辑商品模态框 -->
     <AddModal
-      :visible="showModal"
+      v-model:visible="showModal"
       title="商品"
-      icon="🛍️"
+      icon=""
       :fields="productFields"
       :is-edit-mode="isEditMode"
       :edit-data="editData"
@@ -79,7 +80,7 @@
 
     <!-- 商品详情模态框 -->
     <DetailModal
-      :visible="showDetailModal"
+      v-model:visible="showDetailModal"
       :data="currentProduct"
       title="商品详情"
       :sections="productDetailSections"
@@ -90,7 +91,7 @@
 
     <!-- 确认模态框 -->
     <ConfirmModal
-      :visible="confirmModal.visible"
+      v-model:visible="confirmModal.visible"
       :title="confirmModal.title"
       :message="confirmModal.message"
       :type="confirmModal.type"
@@ -102,6 +103,7 @@
 </template>
 
 <script setup>
+import { Plus } from '@element-plus/icons-vue'
 import AddModal from '@/components/AddModal.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import CustomPagination from '@/components/CustomPagination.vue'
@@ -115,6 +117,7 @@ import { useTableOperations } from '@/composables/useTableOperations'
 import { getCategories, createProduct, updateProduct } from '@/api'
 import { ref, onMounted, computed } from 'vue'
 import { useResponsivePageSize } from '@/composables/useResponsivePageSize'
+import { ElMessage } from 'element-plus'
 
 // 数据
 const allCategories = ref([])
@@ -145,18 +148,15 @@ const batchActions = [
 const {
   currentPage,
   pageSize,
-  totalPages,
+  total,
   selectedIds,
+  loading,
   data: products,
   confirmModal,
   fetchData,
-  handleNextPage,
-  handlePrevPage,
   handleSearch,
   handleFilter,
   handleSort,
-  handleSelect,
-  handleSelectAll,
   handleDelete,
   handleBatchDelete,
   handleBatchStatus,
@@ -169,6 +169,23 @@ const {
   exportFilename: 'products',
   initCallback: fetchAllCategories
 })
+
+// 分页事件处理
+const handlePageChange = async (page) => {
+  currentPage.value = page
+  await fetchData()
+}
+
+const handleSizeChange = async (size) => {
+  pageSize.value = size
+  currentPage.value = 1
+  await fetchData()
+}
+
+// 选择变化处理
+const handleSelectionChange = (ids) => {
+  selectedIds.value = ids
+}
 
 // 模态框状态
 const showModal = ref(false)
@@ -281,8 +298,8 @@ const productFields = ref([
     type: 'radio',
     required: false,
     options: [
-      { value: 1, label: '✓ 上架' },
-      { value: 0, label: '✗ 下架' }
+      { value: 1, label: '上架' },
+      { value: 0, label: '下架' }
     ],
     default: 1
   },
@@ -455,15 +472,17 @@ const handleSubmitProduct = async (formData) => {
 
     if (isEditMode.value) {
       await updateProduct(processedForm.id, processedForm)
+      ElMessage.success('商品更新成功')
     } else {
       await createProduct(processedForm)
+      ElMessage.success('商品添加成功')
     }
     showModal.value = false
     await fetchData()
     await fetchAllCategories()
   } catch (error) {
     console.error('保存商品失败:', error)
-    alert('保存失败，请重试')
+    ElMessage.error('保存失败，请重试')
   }
 }
 

@@ -1,149 +1,181 @@
 <template>
-  <div class="modal-overlay" v-show="visible" @click.self="handleClose">
-    <div class="modal-content">
-      <div class="modal-header">
-        <div class="header-title">
-          <span class="icon">{{ isEditMode ? '✏️' : icon }}</span>
-          <h3>{{ isEditMode ? `编辑${title}` : `添加${title}` }}</h3>
-        </div>
-        <button class="close-btn" @click="handleClose">
-          <span>&times;</span>
-        </button>
+  <!-- 使用 el-dialog 替代手写弹窗 -->
+  <el-dialog
+    v-model="dialogVisible"
+    :title="isEditMode ? `编辑${title}` : `添加${title}`"
+    width="600px"
+    :close-on-click-modal="false"
+    destroy-on-close
+    @close="handleClose"
+  >
+    <template #header>
+      <div class="dialog-header">
+        <span>{{ isEditMode ? `编辑${title}` : `添加${title}` }}</span>
       </div>
+    </template>
 
-      <div class="modal-body">
-        <form class="dynamic-form">
-          <div
-            v-for="field in fields"
-            :key="field.key"
-            class="form-group"
-            :class="{ 'form-row': field.row }"
+    <!-- 使用 el-form 实现表单验证 -->
+    <el-form
+      ref="formRef"
+      :model="formData"
+      :rules="formRules"
+      label-width="100px"
+      label-position="top"
+    >
+      <el-form-item
+        v-for="field in fields"
+        :key="field.key"
+        :label="field.label"
+        :prop="field.key"
+        :required="field.required"
+      >
+        <!-- 文本/邮箱/URL 输入 -->
+        <el-input
+          v-if="field.type === 'text' || field.type === 'email' || field.type === 'url' || field.type === 'tel'"
+          v-model="formData[field.key]"
+          :placeholder="field.placeholder"
+          clearable
+        />
+
+        <!-- 数字输入 -->
+        <el-input-number
+          v-else-if="field.type === 'number'"
+          v-model="formData[field.key]"
+          :placeholder="field.placeholder"
+          :min="field.min"
+          :step="field.step || 1"
+          :precision="field.step < 1 ? 2 : 0"
+          controls-position="right"
+          style="width: 100%"
+        />
+
+        <!-- 文本域 -->
+        <el-input
+          v-else-if="field.type === 'textarea'"
+          v-model="formData[field.key]"
+          type="textarea"
+          :placeholder="field.placeholder"
+          :rows="field.rows || 3"
+        />
+
+        <!-- 下拉选择 -->
+        <el-select
+          v-else-if="field.type === 'select'"
+          v-model="formData[field.key]"
+          :placeholder="field.placeholder || '请选择'"
+          clearable
+          style="width: 100%"
+        >
+          <el-option
+            v-for="option in getOptions(field)"
+            :key="option.value"
+            :label="option.label"
+            :value="option.value"
+          />
+        </el-select>
+
+        <!-- 单选按钮组 -->
+        <el-radio-group
+          v-else-if="field.type === 'radio'"
+          v-model="formData[field.key]"
+        >
+          <el-radio
+            v-for="option in field.options"
+            :key="option.value"
+            :value="option.value"
           >
-            <label :for="field.key">
-              {{ field.label }}
-              <span v-if="field.required" class="required">*</span>
-            </label>
+            {{ option.label }}
+          </el-radio>
+        </el-radio-group>
+      </el-form-item>
+    </el-form>
 
-            <!-- 文本输入 -->
-            <input
-              v-if="field.type === 'text' || field.type === 'email' || field.type === 'url' || field.type === 'tel' || field.type === 'number'"
-              :type="field.type"
-              :id="field.key"
-              :placeholder="field.placeholder"
-              v-model="formData[field.key]"
-              :class="{ 'input-error': field.required && !formData[field.key] }"
-              :min="field.min"
-              :step="field.step"
-            >
-
-            <!-- 文本域 -->
-            <textarea
-              v-else-if="field.type === 'textarea'"
-              :id="field.key"
-              :placeholder="field.placeholder"
-              v-model="formData[field.key]"
-              :rows="field.rows || 3"
-            ></textarea>
-
-            <!-- 下拉选择 -->
-            <select
-              v-else-if="field.type === 'select'"
-              :id="field.key"
-              v-model="formData[field.key]"
-              :class="{ 'input-error': field.required && !formData[field.key] }"
-            >
-              <option :value="null" v-if="field.placeholder">{{ field.placeholder }}</option>
-              <option
-                v-for="option in field.options"
-                :key="option.value"
-                :value="option.value"
-              >
-                {{ option.label }}
-              </option>
-            </select>
-
-            <!-- 单选按钮组 -->
-            <div v-else-if="field.type === 'radio'" class="radio-group">
-              <label
-                v-for="option in field.options"
-                :key="option.value"
-                class="radio-label"
-              >
-                <input
-                  type="radio"
-                  :name="field.key"
-                  :value="option.value"
-                  v-model="formData[field.key]"
-                >
-                <span class="radio-text">{{ option.label }}</span>
-              </label>
-            </div>
-
-            <span v-if="field.required && !formData[field.key]" class="alert-label">
-              {{ field.errorMessage || `请输入${field.label}` }}
-            </span>
-          </div>
-        </form>
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn-secondary" @click="handleClose">取消</button>
-        <button class="btn-primary" @click="handleSubmit" :disabled="!isFormValid">
-          {{ isEditMode ? '保存' : '添加' }}
-        </button>
-      </div>
-    </div>
-  </div>
+    <template #footer>
+      <el-button @click="handleClose">取消</el-button>
+      <el-button type="primary" :loading="submitting" @click="handleSubmit">
+        {{ isEditMode ? '保存' : '添加' }}
+      </el-button>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import { ElMessage } from 'element-plus'
 
 const props = defineProps({
   visible: Boolean,
   title: String,
   icon: {
     type: String,
-    default: '➕'
+    default: ''
   },
   fields: Array,
   isEditMode: Boolean,
   editData: Object
 })
 
-const emit = defineEmits(['close', 'submit'])
+const emit = defineEmits(['close', 'submit', 'update:visible'])
 
+const dialogVisible = computed({
+  get: () => props.visible,
+  set: (val) => emit('update:visible', val)
+})
+
+const formRef = ref(null)
 const formData = ref({})
+const submitting = ref(false)
 
-// 初始化表单数据
+// 处理 computed options（如分类列表）
+const getOptions = (field) => {
+  if (typeof field.options === 'function') return field.options()
+  if (field.options?.value) return field.options.value
+  return field.options || []
+}
+
+// 动态生成表单验证规则
+const formRules = computed(() => {
+  const rules = {}
+  props.fields?.forEach(field => {
+    if (field.required) {
+      rules[field.key] = [
+        {
+          required: true,
+          message: field.errorMessage || `请输入${field.label}`,
+          trigger: field.type === 'select' ? 'change' : 'blur'
+        }
+      ]
+      // 邮箱格式验证
+      if (field.type === 'email') {
+        rules[field.key].push({
+          type: 'email',
+          message: '请输入有效的邮箱地址',
+          trigger: 'blur'
+        })
+      }
+    }
+  })
+  return rules
+})
+
 const initForm = () => {
   const data = {}
-  props.fields.forEach(field => {
+  props.fields?.forEach(field => {
     data[field.key] = props.isEditMode && props.editData
-      ? props.editData[field.key] || field.default
+      ? props.editData[field.key] ?? field.default
       : field.default
   })
   formData.value = data
 }
 
-// 表单验证
-const isFormValid = computed(() => {
-  return props.fields.every(field => {
-    if (field.required) {
-      return formData.value[field.key] !== '' && formData.value[field.key] !== null
-    }
-    return true
-  })
-})
-
-// 监听显示状态
 watch(() => props.visible, (newVal) => {
   if (newVal) {
     initForm()
+    // 重置表单验证状态
+    setTimeout(() => formRef.value?.clearValidate(), 0)
   }
 })
 
-// 监听编辑数据变化
 watch(() => props.editData, (newData) => {
   if (newData && props.isEditMode) {
     initForm()
@@ -151,218 +183,47 @@ watch(() => props.editData, (newData) => {
 }, { deep: true })
 
 const handleClose = () => {
+  formRef.value?.resetFields()
   emit('close')
+  emit('update:visible', false)
 }
 
-const handleSubmit = () => {
-  if (!isFormValid.value) return
-  emit('submit', { ...formData.value })
+// 关键修复：提交前必须调用 validate() 验证
+const handleSubmit = async () => {
+  if (!formRef.value) return
+
+  try {
+    await formRef.value.validate()
+    submitting.value = true
+    emit('submit', { ...formData.value })
+  } catch {
+    ElMessage.warning('请检查表单填写是否正确')
+  } finally {
+    submitting.value = false
+  }
 }
 </script>
 
 <style lang="scss" scoped>
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
+.dialog-header {
   display: flex;
   align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-  max-width: 600px;
-  width: 90%;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.header-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.header-title h3 {
-  margin: 0;
-  font-size: 18px;
+  gap: 8px;
+  font-size: 16px;
   font-weight: 600;
-}
 
-.icon {
-  font-size: 20px;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  color: #6b7280;
-  padding: 0;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: background-color 0.2s;
-}
-
-.close-btn:hover {
-  background: #f3f4f6;
-}
-
-.modal-body {
-  padding: 20px;
-}
-
-.dynamic-form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-
-  .form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-  }
-
-  .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-
-    label {
-      font-weight: 500;
-      color: #374151;
-
-      .required {
-        color: #ef4444;
-      }
-    }
-
-    input, select, textarea {
-      padding: 10px 12px;
-      border: 1px solid #d1d5db;
-      border-radius: 6px;
-      font-size: 14px;
-      transition: border-color 0.2s, box-shadow 0.2s;
-
-      &:focus {
-        outline: none;
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-      }
-
-      &.input-error {
-        border-color: #ef4444;
-      }
-
-      &::placeholder {
-        color: #9ca3af;
-      }
-    }
-
-    textarea {
-      resize: vertical;
-      min-height: 80px;
-      font-family: inherit;
-    }
-
-    select {
-      cursor: pointer;
-    }
-
-    .radio-group {
-      display: flex;
-      gap: 16px;
-      margin-top: 8px;
-
-      .radio-label {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        cursor: pointer;
-
-        input[type="radio"] {
-          width: 16px;
-          height: 16px;
-          accent-color: #10b981;
-        }
-
-        .radio-text {
-          font-size: 14px;
-          color: #374151;
-        }
-      }
-    }
-
-    .alert-label {
-      color: #ef4444;
-      font-size: 12px;
-    }
+  .icon {
+    font-size: 20px;
   }
 }
 
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 20px;
-  border-top: 1px solid #e5e7eb;
+:deep(.el-form-item) {
+  margin-bottom: 18px;
 }
 
-.btn-secondary,
-.btn-primary {
-  padding: 8px 16px;
-  border-radius: 6px;
-  border: 1px solid transparent;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s;
-}
-
-.btn-secondary {
-  background: #fff;
-  color: #6b7280;
-  border-color: #d1d5db;
-}
-
-.btn-secondary:hover {
-  background: #f9fafb;
-  border-color: #9ca3af;
-}
-
-.btn-primary {
-  background: #3b82f6;
-  color: #fff;
-  border-color: #3b82f6;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #2563eb;
-  border-color: #2563eb;
-}
-
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+:deep(.el-dialog__body) {
+  padding-top: 10px;
+  max-height: 60vh;
+  overflow-y: auto;
 }
 </style>

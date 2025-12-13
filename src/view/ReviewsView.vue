@@ -7,9 +7,9 @@
         <div class="subtitle">评论管理 — 评论列表</div>
       </div>
       <div class="header-actions">
-        <button class="btn-base btn-primary" @click="showAddModal">
-          <span>➕</span> 添加评论
-        </button>
+        <el-button type="primary" @click="showAddModal">
+          <el-icon><Plus /></el-icon> 添加评论
+        </el-button>
       </div>
     </header>
 
@@ -43,8 +43,8 @@
         :selected-ids="selectedIds"
         :headers="reviewHeaders"
         :status-text-map="{ pending: '待审核', approved: '已通过', rejected: '已拒绝' }"
-        @select="handleSelect"
-        @select-all="handleSelectAll"
+        :loading="loading"
+        @selection-change="handleSelectionChange"
         @edit="handleEdit"
         @delete="handleDelete"
         @view="handleView"
@@ -56,38 +56,37 @@
     <div class="pagination-section card-white">
       <CustomPagination
         :currentPage="currentPage"
-        :totalPages="totalPages"
-        @prev="handlePrevPage"
-        @next="handleNextPage"
+        :pageSize="pageSize"
+        :total="total"
+        @page-change="handlePageChange"
+        @size-change="handleSizeChange"
       />
     </div>
 
     <!-- 添加/编辑评论模态框 -->
     <AddModal
-      :visible="showModal"
+      v-model:visible="showModal"
       title="评论"
-      icon="💬"
+      icon=""
       :fields="reviewFields"
       :is-edit-mode="isEditMode"
       :edit-data="editData"
-      @close="showModal = false"
       @submit="handleSubmitReview"
     />
 
     <!-- 评论详情模态框 -->
     <DetailModal
-      :visible="showDetailModal"
+      v-model:visible="showDetailModal"
       :data="currentReview"
       title="评论详情"
       :sections="reviewDetailSections"
       :images="currentReview?.images || []"
-      @close="showDetailModal = false"
       @edit="handleEditFromDetail"
     />
 
     <!-- 确认模态框 -->
     <ConfirmModal
-      :visible="confirmModal.visible"
+      v-model:visible="confirmModal.visible"
       :title="confirmModal.title"
       :message="confirmModal.message"
       :type="confirmModal.type"
@@ -112,6 +111,8 @@ import { useTableOperations } from '@/composables/useTableOperations'
 import { createReview, updateReview } from '@/api/reviews'
 import { ref, onMounted } from 'vue'
 import { useResponsivePageSize } from '@/composables/useResponsivePageSize'
+import { Plus } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 
 // 初始化
 onMounted(async () => {
@@ -130,18 +131,15 @@ const batchActions = [
 const {
   currentPage,
   pageSize,
-  totalPages,
+  total,
+  loading,
   selectedIds,
   data: reviews,
   confirmModal,
   fetchData,
-  handleNextPage,
-  handlePrevPage,
   handleSearch,
   handleFilter,
   handleSort,
-  handleSelect,
-  handleSelectAll,
   handleDelete,
   handleBatchDelete,
   handleBatchStatus,
@@ -228,8 +226,8 @@ const reviewFields = ref([
     required: true,
     options: [
       { value: 'pending', label: '⏳ 待审核' },
-      { value: 'approved', label: '✓ 已通过' },
-      { value: 'rejected', label: '✗ 已拒绝' }
+      { value: 'approved', label: '已通过' },
+      { value: 'rejected', label: '已拒绝' }
     ],
     default: 'pending'
   }
@@ -367,14 +365,16 @@ const handleSubmitReview = async (formData) => {
 
     if (isEditMode.value) {
       await updateReview(processedForm.id, processedForm)
+      ElMessage.success('更新评论成功')
     } else {
       await createReview(processedForm)
+      ElMessage.success('添加评论成功')
     }
     showModal.value = false
     await fetchData()
   } catch (error) {
     console.error('保存评论失败:', error)
-    alert('保存失败，请重试')
+    ElMessage.error('保存失败，请重试')
   }
 }
 
@@ -395,6 +395,23 @@ const handleBatchAction = (actionKey, params) => {
       handleBatchStatus('pending')
       break
   }
+}
+
+// 分页事件处理
+const handlePageChange = async (page) => {
+  currentPage.value = page
+  await fetchData()
+}
+
+const handleSizeChange = async (size) => {
+  pageSize.value = size
+  currentPage.value = 1
+  await fetchData()
+}
+
+// 表格选择变化处理
+const handleSelectionChange = (selection) => {
+  selectedIds.value = selection.map(item => item.id)
 }
 </script>
 

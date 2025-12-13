@@ -13,7 +13,7 @@
       <!-- 基本设置 -->
       <div class="setting-card card-white">
         <div class="card-header">
-          <h2 class="card-title">⚙️ 基本设置</h2>
+          <h2 class="card-title">基本设置</h2>
         </div>
         <div class="card-body">
           <div class="setting-item">
@@ -38,7 +38,7 @@
       <!-- 业务设置 -->
       <div class="setting-card card-white">
         <div class="card-header">
-          <h2 class="card-title">💼 业务设置</h2>
+          <h2 class="card-title">业务设置</h2>
         </div>
         <div class="card-body">
           <div class="setting-item">
@@ -69,7 +69,7 @@
       <!-- 通知设置 -->
       <div class="setting-card card-white">
         <div class="card-header">
-          <h2 class="card-title">🔔 通知设置</h2>
+          <h2 class="card-title">通知设置</h2>
         </div>
         <div class="card-body">
           <div class="setting-item">
@@ -108,7 +108,7 @@
       <!-- 安全设置 -->
       <div class="setting-card card-white">
         <div class="card-header">
-          <h2 class="card-title">🔒 安全设置</h2>
+          <h2 class="card-title">安全设置</h2>
         </div>
         <div class="card-body">
           <div class="setting-item">
@@ -134,8 +134,8 @@
 
       <!-- 操作按钮 -->
       <div class="action-buttons">
-        <button class="btn-base btn-primary" @click="saveSettings">💾 保存设置</button>
-        <button class="btn-base btn-secondary-outline" @click="resetSettings">🔄 重置设置</button>
+        <button class="btn-base btn-primary" @click="saveSettings">保存设置</button>
+        <button class="btn-base btn-secondary-outline" @click="resetSettings">重置设置</button>
       </div>
     </div>
   </div>

@@ -4,73 +4,132 @@ import { saveAs } from 'file-saver'
 import Papa from 'papaparse'
 import * as XLSX from 'xlsx'
 
+const defaultApisCache = new Map()
+
+const getDefaultApis = (apiEndpoint) => {
+  const cached = defaultApisCache.get(apiEndpoint)
+  if (cached) return cached
+
+  const apis = {
+    getList: (params, config = {}) => request({
+      url: apiEndpoint,
+      method: 'get',
+      params,
+      ...config
+    }),
+    create: (data, config = {}) => request({
+      url: apiEndpoint,
+      method: 'post',
+      data,
+      ...config
+    }),
+    update: (id, data, config = {}) => request({
+      url: `${apiEndpoint}/${id}`,
+      method: 'put',
+      data,
+      ...config
+    }),
+    delete: (id, config = {}) => request({
+      url: `${apiEndpoint}/${id}`,
+      method: 'delete',
+      ...config
+    }),
+    batchDelete: (ids, config = {}) => request({
+      url: `${apiEndpoint}/batch-delete`,
+      method: 'post',
+      data: { ids },
+      ...config
+    }),
+    toggleStatus: (id, config = {}) => request({
+      url: `${apiEndpoint}/${id}/toggle-status`,
+      method: 'put',
+      ...config
+    }),
+    batchEnable: (ids, config = {}) => request({
+      url: `${apiEndpoint}/batch-enable`,
+      method: 'post',
+      data: { ids },
+      ...config
+    }),
+    batchDisable: (ids, config = {}) => request({
+      url: `${apiEndpoint}/batch-disable`,
+      method: 'post',
+      data: { ids },
+      ...config
+    }),
+    export: (params, config = {}) => request({
+      url: `${apiEndpoint}/export`,
+      method: 'get',
+      params,
+      responseType: 'blob',
+      ...config
+    }),
+    getStats: (config = {}) => request({
+      url: `${apiEndpoint}/stats`,
+      method: 'get',
+      ...config
+    })
+  }
+
+  defaultApisCache.set(apiEndpoint, apis)
+  return apis
+}
+
+const isCanceledError = (error) => {
+  return error?.code === 'ERR_CANCELED' || error?.name === 'CanceledError'
+}
+
+const runPoolAllSettled = async (factories, limit = 6) => {
+  const queue = [...factories]
+  const settled = []
+
+  const worker = async () => {
+    while (queue.length) {
+      const fn = queue.shift()
+      try {
+        settled.push({ status: 'fulfilled', value: await fn() })
+      } catch (e) {
+        settled.push({ status: 'rejected', reason: e })
+      }
+    }
+  }
+
+  const n = Math.max(1, Math.min(limit, factories.length || 1))
+  await Promise.all(Array.from({ length: n }, worker))
+
+  const rejected = settled.find(r => r.status === 'rejected')
+  if (rejected) throw rejected.reason
+  return settled
+}
+
+const createStockExtensions = (apiCall, api) => ({
+  // TODO: move to a dedicated useStockBusiness hook
+  stockIn: (data) => apiCall('post', '/stock-in', data),
+  stockOut: (data) => apiCall('post', '/stock-out', data),
+  adjustStock: (data) => apiCall('post', '/adjust', data),
+  batchAdjustStock: (adjustments) => apiCall('post', '/batch-adjust', adjustments),
+  getStats: () => (api.getStats ? api.getStats() : apiCall('get', '/stats'))
+})
+
 export function useTableOperations(apiEndpoint, options = {}) {
   const {
     pageSize: defaultPageSize = 10,
     exportFilename = 'data',
     initCallback = null,
-    apis = {} // API函数配置，支持传入现有的API函数
+    apis = {},
+    extensions = null,
+    concurrency = 6
   } = options
 
-  // 默认API函数 - 使用request工具
-  const defaultApis = {
-    getList: (params) => request({
-      url: apiEndpoint,
-      method: 'get',
-      params
-    }),
-    create: (data) => request({
-      url: apiEndpoint,
-      method: 'post',
-      data
-    }),
-    update: (id, data) => request({
-      url: `${apiEndpoint}/${id}`,
-      method: 'put',
-      data
-    }),
-    delete: (id) => request({
-      url: `${apiEndpoint}/${id}`,
-      method: 'delete'
-    }),
-    batchDelete: (ids) => request({
-      url: `${apiEndpoint}/batch-delete`,
-      method: 'post',
-      data: { ids }
-    }),
-    toggleStatus: (id) => request({
-      url: `${apiEndpoint}/${id}/toggle-status`,
-      method: 'put'
-    }),
-    batchEnable: (ids) => request({
-      url: `${apiEndpoint}/batch-enable`,
-      method: 'post',
-      data: { ids }
-    }),
-    batchDisable: (ids) => request({
-      url: `${apiEndpoint}/batch-disable`,
-      method: 'post',
-      data: { ids }
-    }),
-    export: (params) => request({
-      url: `${apiEndpoint}/export`,
-      method: 'get',
-      params,
-      responseType: 'blob'
-    }),
-    getStats: () => request({
-      url: `${apiEndpoint}/stats`,
-      method: 'get'
-    })
-  }
-
   // 合并API函数 - 支持传入自定义API函数
-  const api = { ...defaultApis, ...apis }
+  const api = { ...getDefaultApis(apiEndpoint), ...apis }
 
   // 分页状态
   const currentPage = ref(1)
   const pageSize = ref(defaultPageSize)
   const totalPages = ref(1)
+  // 关键：total 初始值为 0，避免分页显示 NaN
+  const total = ref(0)
 
   // 搜索状态
   const searchKeyword = ref('')
@@ -91,6 +150,9 @@ export function useTableOperations(apiEndpoint, options = {}) {
   // 数据状态
   const data = ref([])
   const loading = ref(false)
+
+  let abortController = null
+  let latestRequestSeq = 0
 
   // 确认模态框状态
   const confirmModal = ref({
@@ -168,10 +230,17 @@ export function useTableOperations(apiEndpoint, options = {}) {
 
   // 获取数据
   const fetchData = async () => {
+    const requestSeq = ++latestRequestSeq
     try {
       loading.value = true
+
+      const controller = new AbortController()
+      abortController?.abort()
+      abortController = controller
+
       if (initCallback) {
-        await initCallback()
+        await initCallback({ signal: controller.signal })
+        if (requestSeq !== latestRequestSeq) return
       }
       const params = {
         page: currentPage.value,
@@ -189,14 +258,25 @@ export function useTableOperations(apiEndpoint, options = {}) {
         }
       })
 
-      const res = await api.getList(params)
-      data.value = res.data.list
-      totalPages.value = Math.ceil(res.data.totalRecords / pageSize.value)
+      const res = await api.getList(params, { signal: controller.signal })
+
+      // 只允许最新一次请求写入数据，避免“旧请求慢返回覆盖新请求”的问题
+      if (requestSeq === latestRequestSeq) {
+        data.value = res.data.list
+        // 关键修复：确保 total 正确赋值，避免 NaN
+        total.value = res.data.totalRecords || 0
+        totalPages.value = Math.ceil(total.value / pageSize.value)
+      }
     } catch (error) {
+      if (isCanceledError(error)) {
+        return
+      }
       console.error('API调用失败:', error)
       console.error('错误详情:', error.response?.data || error.message)
     } finally {
-      loading.value = false
+      if (requestSeq === latestRequestSeq) {
+        loading.value = false
+      }
     }
   }
 
@@ -237,13 +317,9 @@ export function useTableOperations(apiEndpoint, options = {}) {
       onConfirm: async () => {
         try {
           if (api.batchDelete) {
-            // 如果有批量删除API，使用它
             await api.batchDelete(selectedIds.value)
           } else {
-            // 否则逐个删除
-            for (const id of selectedIds.value) {
-              await api.delete(id)
-            }
+            await runPoolAllSettled(selectedIds.value.map(id => () => api.delete(id)), concurrency)
           }
           selectedIds.value = []
           isAllSelected.value = false
@@ -273,16 +349,12 @@ export function useTableOperations(apiEndpoint, options = {}) {
       confirmText: action,
       onConfirm: async () => {
         try {
-          // 检查是否有专门的批量状态API
           if (status === 1 && api.batchEnable) {
             await api.batchEnable(selectedIds.value)
           } else if (status === 0 && api.batchDisable) {
             await api.batchDisable(selectedIds.value)
           } else {
-            // 否则逐个更新
-            for (const id of selectedIds.value) {
-              await api.update(id, { status })
-            }
+            await runPoolAllSettled(selectedIds.value.map(id => () => api.update(id, { status })), concurrency)
           }
           selectedIds.value = []
           isAllSelected.value = false
@@ -332,10 +404,13 @@ export function useTableOperations(apiEndpoint, options = {}) {
     }
 
     try {
-      for (const item of importData) {
-        const processedItem = processItemCallback ? processItemCallback(item) : item
-        await api.create(processedItem)
-      }
+      await runPoolAllSettled(
+        importData.map(item => () => {
+          const processedItem = processItemCallback ? processItemCallback(item) : item
+          return api.create(processedItem)
+        }),
+        concurrency
+      )
       alert(`成功导入 ${importData.length} 条数据`)
       await fetchData()
     } catch (error) {
@@ -349,16 +424,21 @@ export function useTableOperations(apiEndpoint, options = {}) {
     try {
       let exportData
       if (api.export) {
-        // 如果有专门的导出API
         const res = await api.export({
           page: 1,
           size: 1000,
           keyword: searchKeyword.value,
           ...filters
         })
-        exportData = res.data
+
+        const blob = res instanceof Blob ? res : (res?.data instanceof Blob ? res.data : null)
+        if (blob) {
+          saveAs(blob, `${exportFilename}.${format}`)
+          return
+        }
+
+        exportData = res?.data ?? res
       } else {
-        // 否则使用列表API获取数据
         const res = await api.getList({
           page: 1,
           size: 1000,
@@ -419,41 +499,25 @@ export function useTableOperations(apiEndpoint, options = {}) {
       })
       return response
     } catch (error) {
+      if (isCanceledError(error)) {
+        throw error
+      }
       console.error(`${method.toUpperCase()} ${url} 失败:`, error)
       throw error
     }
   }
 
-  // 库存管理专用方法
-  const stockIn = async (data) => {
-    return await apiCall('post', '/stock-in', data)
-  }
-
-  const stockOut = async (data) => {
-    return await apiCall('post', '/stock-out', data)
-  }
-
-  const adjustStock = async (data) => {
-    return await apiCall('post', '/adjust', data)
-  }
-
-  const batchAdjustStock = async (adjustments) => {
-    return await apiCall('post', '/batch-adjust', adjustments)
-  }
-
-  const getStats = async () => {
-    if (api.getStats) {
-      return await api.getStats()
-    } else {
-      return await apiCall('get', '/stats')
-    }
-  }
+  const stockExtensions = createStockExtensions(apiCall, api)
+  const externalExtensions =
+    typeof extensions === 'function'
+      ? (extensions({ api, apiCall, state: { currentPage, pageSize, totalPages, total, searchKeyword, filters, sortConfig, selectedIds, data, loading } }) || {})
+      : (extensions || {})
 
   return {
-    // 状态
     currentPage,
     pageSize,
     totalPages,
+    total,
     searchKeyword,
     filters,
     sortConfig,
@@ -463,7 +527,6 @@ export function useTableOperations(apiEndpoint, options = {}) {
     loading,
     confirmModal,
 
-    // 方法
     fetchData,
     handleNextPage,
     handlePrevPage,
@@ -481,14 +544,9 @@ export function useTableOperations(apiEndpoint, options = {}) {
     handleConfirm,
     handleCancel,
 
-    // 通用API调用
     apiCall,
 
-    // 库存管理方法
-    stockIn,
-    stockOut,
-    adjustStock,
-    batchAdjustStock,
-    getStats
+    ...stockExtensions,
+    ...externalExtensions
   }
 }

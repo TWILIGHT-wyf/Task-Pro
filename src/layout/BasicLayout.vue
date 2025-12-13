@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRoute } from 'vue-router'
+import { Fold, Expand } from '@element-plus/icons-vue'
 
 const collapsed = ref(false)
 const route = useRoute()
@@ -30,7 +31,10 @@ function abbrev(name) {
     <aside class="sidebar" :class="{ collapsed }">
       <div class="brand">
         <span class="title" v-if="!collapsed">商城后台管理系统</span>
-        <button class="toggle" @click="collapsed = !collapsed" aria-label="Toggle menu">☰</button>
+        <button class="toggle" @click="collapsed = !collapsed" aria-label="Toggle menu">
+          <el-icon v-if="collapsed"><Expand /></el-icon>
+          <el-icon v-else><Fold /></el-icon>
+        </button>
       </div>
       <nav class="nav">
         <ul>

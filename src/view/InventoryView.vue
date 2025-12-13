@@ -7,12 +7,12 @@
         <div class="subtitle">库存管理 — 库存列表</div>
       </div>
       <div class="header-actions">
-        <button class="btn-base btn-primary" @click="showStockInModal">
-          <span>📥</span> 入库
-        </button>
-        <button class="btn-base btn-danger" @click="showStockOutModal">
-          <span>📤</span> 出库
-        </button>
+        <el-button type="primary" @click="showStockInModal">
+          <el-icon><Download /></el-icon> 入库
+        </el-button>
+        <el-button type="danger" @click="showStockOutModal">
+          <el-icon><Upload /></el-icon> 出库
+        </el-button>
       </div>
     </header>
 
@@ -20,28 +20,28 @@
     <div class="stats-section">
       <div class="stats-grid">
         <div class="stat-card card-white">
-          <div class="stat-icon">📦</div>
+          <div class="stat-icon"><el-icon><Box /></el-icon></div>
           <div class="stat-content">
             <div class="stat-value">{{ totalProducts }}</div>
             <div class="stat-label">总商品数</div>
           </div>
         </div>
         <div class="stat-card card-white">
-          <div class="stat-icon">⚠️</div>
+          <div class="stat-icon"><el-icon><Warning /></el-icon></div>
           <div class="stat-content">
             <div class="stat-value warning">{{ lowStockCount }}</div>
             <div class="stat-label">低库存商品</div>
           </div>
         </div>
         <div class="stat-card card-white">
-          <div class="stat-icon">💰</div>
+          <div class="stat-icon"><el-icon><Coin /></el-icon></div>
           <div class="stat-content">
             <div class="stat-value">{{ (totalValue || 0).toFixed(2) }}</div>
             <div class="stat-label">库存总价值</div>
           </div>
         </div>
         <div class="stat-card card-white">
-          <div class="stat-icon">🔄</div>
+          <div class="stat-icon"><el-icon><Refresh /></el-icon></div>
           <div class="stat-content">
             <div class="stat-value">{{ totalStock }}</div>
             <div class="stat-label">总库存量</div>
@@ -79,8 +79,8 @@
         :data="inventory"
         :selected-ids="selectedIds"
         :headers="inventoryHeaders"
-        @select="handleSelect"
-        @select-all="handleSelectAll"
+        :loading="loading"
+        @selection-change="handleSelectionChange"
         @edit="handleEdit"
         @delete="handleDelete"
         @view="handleView"
@@ -91,63 +91,60 @@
     <div class="pagination-section card-white">
       <CustomPagination
         :currentPage="currentPage"
-        :totalPages="totalPages"
-        @prev="handlePrevPage"
-        @next="handleNextPage"
+        :pageSize="pageSize"
+        :total="total"
+        @page-change="handlePageChange"
+        @size-change="handleSizeChange"
       />
     </div>
   </div>
 
   <!-- 入库模态框 -->
   <AddModal
-    :visible="stockInModal.visible"
+    v-model:visible="stockInModal.visible"
     title="商品入库"
-    icon="📥"
+    icon=""
     :fields="stockInFields"
     :is-edit-mode="false"
     :edit-data="null"
-    @close="stockInModal.visible = false"
     @submit="handleStockIn"
   />
 
   <!-- 出库模态框 -->
   <AddModal
-    :visible="stockOutModal.visible"
+    v-model:visible="stockOutModal.visible"
     title="商品出库"
-    icon="📤"
+    icon=""
     :fields="stockOutFields"
     :is-edit-mode="false"
     :edit-data="null"
-    @close="stockOutModal.visible = false"
     @submit="handleStockOut"
   />
 
   <!-- 库存调整模态框 -->
   <AddModal
-    :visible="adjustModal.visible"
+    v-model:visible="adjustModal.visible"
     title="库存调整"
-    icon="🔄"
+    icon=""
     :fields="adjustFields"
     :is-edit-mode="!!adjustModal.editData"
     :edit-data="adjustModal.editData"
-    @close="handleCloseAdjustModal"
     @submit="handleStockAdjust"
   />
 
   <!-- 批量库存调整模态框 -->
   <AddModal
-    :visible="batchAdjustModal.visible"
+    v-model:visible="batchAdjustModal.visible"
     title="批量库存调整"
-    icon="📊"
+    icon=""
     :fields="batchAdjustFields"
     :is-edit-mode="false"
     :edit-data="batchAdjustModal.adjustData"
-    @close="batchAdjustModal.visible = false"
     @submit="handleBatchAdjustSubmit"
   />
 
   <ConfirmModal
-    :visible="confirmModal.visible"
+    v-model:visible="confirmModal.visible"
     :title="confirmModal.title"
     :message="confirmModal.message"
     :type="confirmModal.type"
@@ -158,11 +155,10 @@
 
   <!-- 库存详情模态框 -->
   <DetailModal
-    :visible="showDetailModal"
+    v-model:visible="showDetailModal"
     :data="currentInventory"
     title="库存详情"
     :sections="inventoryDetailSections"
-    @close="handleCloseDetailModal"
     @edit="handleEditFromDetail"
   />
 </template>
@@ -170,6 +166,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Download, Upload, Box, Warning, Coin, Refresh } from '@element-plus/icons-vue'
 import CustomTable from '../components/CustomTable.vue'
 import CustomFilter from '../components/CustomFilter.vue'
 import CustomPagination from '../components/CustomPagination.vue'
@@ -186,17 +183,14 @@ import { useResponsivePageSize } from '@/composables/useResponsivePageSize'
 const {
   currentPage,
   pageSize,
-  totalPages,
+  total,
+  loading,
   selectedIds,
   data: inventory,
   fetchData,
-  handleNextPage,
-  handlePrevPage,
   handleSearch,
   handleFilter,
   handleSort,
-  handleSelect,
-  handleSelectAll,
   handleDelete,
   handleBatchDelete,
   confirmModal,
@@ -645,14 +639,35 @@ const handleBatchAction = (actionKey, params) => {
       break
   }
 }
+
+// 分页事件处理
+const handlePageChange = async (page) => {
+  currentPage.value = page
+  await fetchData()
+}
+
+const handleSizeChange = async (size) => {
+  pageSize.value = size
+  currentPage.value = 1
+  await fetchData()
+}
+
+// 表格选择变化处理
+const handleSelectionChange = (selection) => {
+  selectedIds.value = selection.map(item => item.id)
+}
 </script>
 
 <style lang="scss" scoped>
 .inventory-page {
-  padding: 20px;
-  background: #f5f7fa;
+  display: flex;
+  flex-direction: column;
+  padding: 18px;
+  box-sizing: border-box;
   height: 100%;
   min-height: 0;
+  background: #f5f7fa;
+  overflow: hidden;
 }
 
 // 页面头部
@@ -754,6 +769,8 @@ const handleBatchAction = (actionKey, params) => {
 
 // 表格卡片
 .table-card {
+  flex: 1 1 auto;
+  min-height: 0;
   margin-bottom: 16px;
   overflow: hidden;
 }
@@ -763,6 +780,7 @@ const handleBatchAction = (actionKey, params) => {
   padding: 16px 20px;
   display: flex;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 // 按钮样式扩展

@@ -1,15 +1,72 @@
 import axios from 'axios'
 import router from '@/router'
 
+let isRefreshing = false
+let refreshGate = null
+let rejectRefreshGate = null
+
+const getRefreshGate = () => {
+  if (!refreshGate) {
+    refreshGate = new Promise((_, reject) => {
+      rejectRefreshGate = reject
+    })
+  }
+  return refreshGate
+}
+
+const resetRefreshStateIfTokenRestored = () => {
+  const token = localStorage.getItem('token')
+  if (isRefreshing && token) {
+    isRefreshing = false
+    refreshGate = null
+    rejectRefreshGate = null
+  }
+}
+
+const createApiError = (message, originalError) => {
+  const err = new Error(message)
+  err.isAxiosError = !!originalError?.isAxiosError
+  err.code = originalError?.code
+  err.config = originalError?.config
+  err.response = originalError?.response
+  return err
+}
+
+let onAuthExpired = ({ redirect }) => {
+  try {
+    alert('登录已过期，请重新登录')
+  } catch {
+    // ignore
+  }
+  router.push({ path: '/login', query: { redirect } })
+}
+
+export const setOnAuthExpired = (handler) => {
+  onAuthExpired = typeof handler === 'function' ? handler : onAuthExpired
+}
+
+const isBinaryResponse = (response) => {
+  const rt = response?.config?.responseType
+  if (rt && rt !== 'json') return true
+  const d = response?.data
+  return d instanceof Blob || d instanceof ArrayBuffer
+}
+
+const isEnvelope = (data) => {
+  return data && typeof data === 'object' && Object.prototype.hasOwnProperty.call(data, 'code')
+}
+
 // 创建axios实例
 const service = axios.create({
-  baseURL: typeof window !== 'undefined' ? (import.meta?.env?.VITE_API_BASE_URL || '') : (process?.env?.VITE_API_BASE_URL || 'http://localhost:3000'),
+  baseURL: import.meta.env.VITE_API_BASE_URL || '',
   timeout: 10000
 })
 
 // 请求拦截器
 service.interceptors.request.use(
   config => {
+    resetRefreshStateIfTokenRestored()
+
     // 从 localStorage 获取 token
     const token = localStorage.getItem('token')
 
@@ -29,42 +86,47 @@ service.interceptors.request.use(
 // 响应拦截器
 service.interceptors.response.use(
   response => {
-    const res = response.data
+    if (isBinaryResponse(response)) return response.data
 
-    // 根据后端返回的code判断请求状态
-    if (res.code !== 0 && res.code !== 200) {
-      // 处理错误，创建一个错误对象以便传递消息
-      const error = new Error(res.message || '请求失败')
-      error.response = { data: res }
-      console.error('API Error:', res.message || '请求失败')
+    const data = response.data
+
+    if (isEnvelope(data)) {
+      if (data.code !== 0 && data.code !== 200) {
+        const error = createApiError(data.message || '请求失败')
+        error.response = { data, status: response.status, headers: response.headers, config: response.config }
+        return Promise.reject(error)
+      }
+      return data
+    }
+
+    return data
+  },
+  error => {
+    if (error?.code === 'ERR_CANCELED' || error?.name === 'CanceledError') {
       return Promise.reject(error)
     }
 
-    return res
-  },
-  error => {
     console.error('响应错误:', error)
 
-    // 处理 401 未授权错误
     if (error.response) {
       const { status, data } = error.response
 
       // 检测 401 状态码或后端返回的 code 为 401
       if (status === 401 || data?.code === 401) {
-        console.warn('Token 已失效，请重新登录')
+        const reloginError = createApiError('Token 已失效，请重新登录', error)
+        const gate = getRefreshGate()
 
-        // 清除本地 token
-        localStorage.removeItem('token')
+        if (!isRefreshing) {
+          isRefreshing = true
+          localStorage.removeItem('token')
 
-        // 跳转到登录页
-        // 使用 router.currentRoute.value.fullPath 保存当前路径，以便登录后跳转回来
-        const currentPath = router.currentRoute.value.fullPath
-        router.push({
-          path: '/login',
-          query: { redirect: currentPath }
-        })
+        
+          onAuthExpired({ redirect: router.currentRoute.value.fullPath })
 
-        return Promise.reject(new Error('Token 已失效，请重新登录'))
+          rejectRefreshGate?.(reloginError)
+        }
+
+        return gate
       }
     }
 

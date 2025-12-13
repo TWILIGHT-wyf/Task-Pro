@@ -7,9 +7,9 @@
         <div class="subtitle">订单管理 — 订单列表</div>
       </div>
       <div class="header-actions">
-        <button class="btn-base btn-primary" @click="showAddModal">
-          <span>➕</span> 添加订单
-        </button>
+        <el-button type="primary" @click="showAddModal">
+          <el-icon><Plus /></el-icon> 添加订单
+        </el-button>
       </div>
     </header>
 
@@ -43,8 +43,8 @@
         :selected-ids="selectedIds"
         :headers="orderHeaders"
         :status-text-map="{ pending: '待支付', paid: '已支付', shipped: '已发货', completed: '已完成', cancelled: '已取消' }"
-        @select="handleSelect"
-        @select-all="handleSelectAll"
+        :loading="loading"
+        @selection-change="handleSelectionChange"
         @edit="handleEdit"
         @delete="handleDelete"
         @view="handleView"
@@ -56,26 +56,26 @@
     <div class="pagination-section card-white">
       <CustomPagination
         :currentPage="currentPage"
-        :totalPages="totalPages"
-        @prev="handlePrevPage"
-        @next="handleNextPage"
+        :pageSize="pageSize"
+        :total="total"
+        @page-change="handlePageChange"
+        @size-change="handleSizeChange"
       />
     </div>
   </div>
 
   <AddModal
-    :visible="isShow"
+    v-model:visible="isShow"
     title="订单"
-    icon="📦"
+    icon=""
     :fields="orderFields"
     :is-edit-mode="isEditMode"
     :edit-data="editData"
-    @close="isShow = false"
     @submit="handleAddOrder"
   />
 
   <ConfirmModal
-    :visible="confirmModal.visible"
+    v-model:visible="confirmModal.visible"
     :title="confirmModal.title"
     :message="confirmModal.message"
     :type="confirmModal.type"
@@ -86,11 +86,10 @@
 
   <!-- 订单详情模态框 -->
   <DetailModal
-    :visible="showDetailModal"
+    v-model:visible="showDetailModal"
     :data="currentOrder"
     title="订单详情"
     :sections="orderDetailSections"
-    @close="showDetailModal = false"
     @edit="handleEditFromDetail"
   />
 </template>
@@ -109,24 +108,23 @@ import { useTableOperations } from '@/composables/useTableOperations'
 import { createOrder, updateOrder, updateOrderStatus } from '@/api'
 import { ref, onMounted } from 'vue'
 import { useResponsivePageSize } from '@/composables/useResponsivePageSize'
+import { Plus } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 
 // 使用通用表格操作逻辑
 const {
   currentPage,
   pageSize,
-  totalPages,
+  total,
+  loading,
   searchKeyword,
   selectedIds,
   data: orders,
   confirmModal,
   fetchData,
-  handleNextPage,
-  handlePrevPage,
   handleSearch,
   handleFilter,
   handleSort,
-  handleSelect,
-  handleSelectAll,
   handleDelete,
   handleBatchDelete,
   handleBatchStatus,
@@ -379,8 +377,10 @@ const handleAddOrder = async (formData) => {
   try {
     if (isEditMode.value) {
       await updateOrder(formData.id, formData)
+      ElMessage.success('更新订单成功')
     } else {
       await createOrder(formData)
+      ElMessage.success('添加订单成功')
     }
     searchKeyword.value = ''
     currentPage.value = 1
@@ -388,7 +388,7 @@ const handleAddOrder = async (formData) => {
     isShow.value = false
   } catch (error) {
     console.error('保存订单失败:', error)
-    alert('保存失败，请重试')
+    ElMessage.error('保存失败，请重试')
   }
 }
 
@@ -443,10 +443,10 @@ const handleToggleStatus = async (id, currentStatus) => {
       case 'completed':
       case 'cancelled':
         // 已完成或已取消的订单不能再切换状态
-        alert('该订单状态不能再修改')
+        ElMessage.warning('该订单状态不能再修改')
         return
       default:
-        alert('未知的订单状态')
+        ElMessage.warning('未知的订单状态')
         return
     }
 
@@ -460,15 +460,16 @@ const handleToggleStatus = async (id, currentStatus) => {
         try {
           await updateOrderStatus(id, newStatus)
           await fetchData()
+          ElMessage.success(`${action}成功`)
         } catch (error) {
           console.error('状态切换失败:', error)
-          alert('状态切换失败，请重试')
+          ElMessage.error('状态切换失败，请重试')
         }
       }
     }
   } catch (error) {
     console.error('状态切换失败:', error)
-    alert('状态切换失败，请重试')
+    ElMessage.error('状态切换失败，请重试')
   }
 }
 
@@ -489,6 +490,23 @@ const handleBatchAction = (actionKey, params) => {
       handleBatchStatus('completed', { completed: '标记已完成' })
       break
   }
+}
+
+// 分页事件处理
+const handlePageChange = async (page) => {
+  currentPage.value = page
+  await fetchData()
+}
+
+const handleSizeChange = async (size) => {
+  pageSize.value = size
+  currentPage.value = 1
+  await fetchData()
+}
+
+// 表格选择变化处理
+const handleSelectionChange = (selection) => {
+  selectedIds.value = selection.map(item => item.id)
 }
 </script>
 

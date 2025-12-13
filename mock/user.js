@@ -16,7 +16,7 @@ export default [
     method: 'get',
     response: ({ headers }) => {
       if ((headers.authorization || '') === 'Bearer demo-token-123') {
-        return { code: 0, data: { id:1, username:'demo', name:'管理员' } }
+        return { code: 0, data: { id:1, username:'demo', name:'管理员', roles: ['admin', 'analyst'] } }
       }
       return { code: 401, message: '未登录' }
     }

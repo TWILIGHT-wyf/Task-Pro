@@ -7,9 +7,9 @@
         <div class="subtitle">会员管理 — 会员列表</div>
       </div>
       <div class="header-actions">
-        <button class="btn-base btn-primary" @click="showAddModal">
-          <span>➕</span> 添加会员
-        </button>
+        <el-button type="primary" @click="showAddModal">
+          <el-icon><Plus /></el-icon> 添加会员
+        </el-button>
       </div>
     </header>
 
@@ -44,8 +44,8 @@
         :selected-ids="selectedIds"
         :headers="customerHeaders"
         :status-text-map="{ active: '活跃', inactive: '非活跃' }"
-        @select="handleSelect"
-        @select-all="handleSelectAll"
+        :loading="loading"
+        @selection-change="handleSelectionChange"
         @edit="handleEdit"
         @delete="handleDelete"
         @view="handleView"
@@ -57,26 +57,26 @@
     <div class="pagination-section card-white">
       <CustomPagination
         :currentPage="currentPage"
-        :totalPages="totalPages"
-        @prev="handlePrevPage"
-        @next="handleNextPage"
+        :pageSize="pageSize"
+        :total="total"
+        @page-change="handlePageChange"
+        @size-change="handleSizeChange"
       />
     </div>
   </div>
 
   <AddModal
-    :visible="isShow"
+    v-model:visible="isShow"
     title="会员"
-    icon="👤"
+    icon=""
     :fields="customerFields"
     :is-edit-mode="isEditMode"
     :edit-data="editData"
-    @close="isShow = false"
     @submit="handleAddCustomer"
   />
 
   <ConfirmModal
-    :visible="confirmModal.visible"
+    v-model:visible="confirmModal.visible"
     :title="confirmModal.title"
     :message="confirmModal.message"
     :type="confirmModal.type"
@@ -87,11 +87,10 @@
 
   <!-- 会员详情模态框 -->
   <DetailModal
-    :visible="showDetailModal"
+    v-model:visible="showDetailModal"
     :data="currentCustomer"
     title="会员详情"
     :sections="customerDetailSections"
-    @close="showDetailModal = false"
     @edit="handleEditFromDetail"
   />
 </template>
@@ -110,24 +109,23 @@ import { useTableOperations } from '@/composables/useTableOperations'
 import { createCustomer, updateCustomer } from '@/api'
 import { ref, onMounted } from 'vue'
 import { useResponsivePageSize } from '@/composables/useResponsivePageSize'
+import { Plus } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 
 // 使用通用表格操作逻辑
 const {
   currentPage,
   pageSize,
-  totalPages,
+  total,
+  loading,
   searchKeyword,
   selectedIds,
   data: customers,
   confirmModal,
   fetchData,
-  handleNextPage,
-  handlePrevPage,
   handleSearch,
   handleFilter,
   handleSort,
-  handleSelect,
-  handleSelectAll,
   handleDelete,
   handleBatchDelete,
   handleBatchStatus,
@@ -271,8 +269,10 @@ const handleAddCustomer = async (formData) => {
   try {
     if (isEditMode.value) {
       await updateCustomer(formData.id, formData)
+      ElMessage.success('更新会员成功')
     } else {
       await createCustomer(formData)
+      ElMessage.success('添加会员成功')
     }
     searchKeyword.value = ''
     currentPage.value = 1
@@ -280,7 +280,7 @@ const handleAddCustomer = async (formData) => {
     isShow.value = false
   } catch (error) {
     console.error('保存会员失败:', error)
-    alert('保存失败，请重试')
+    ElMessage.error('保存失败，请重试')
   }
 }
 
@@ -326,6 +326,23 @@ const handleBatchAction = (actionKey, params) => {
       handleBatchStatus('inactive')
       break
   }
+}
+
+// 分页事件处理
+const handlePageChange = async (page) => {
+  currentPage.value = page
+  await fetchData()
+}
+
+const handleSizeChange = async (size) => {
+  pageSize.value = size
+  currentPage.value = 1
+  await fetchData()
+}
+
+// 表格选择变化处理
+const handleSelectionChange = (selection) => {
+  selectedIds.value = selection.map(item => item.id)
 }
 </script>
 

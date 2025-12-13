@@ -1,102 +1,145 @@
 <template>
-  <div class="custom-table">
-    <table class="custom-table-content">
-      <thead>
-        <tr>
-          <th class="th-checkbox" v-if="showCheckbox">
-            <input type="checkbox" class="checkbox" :checked="isAllSelected" @change="handleSelectAll">
-          </th>
-          <th v-for="item in headers" :key="item.key">{{ item.label }}</th>
-          <th class="th-actions" v-if="showActions">操作</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="item in data" :key="item.id" class="data-row">
-          <td class="td-checkbox" v-if="showCheckbox">
-            <input
-              type="checkbox"
-              class="checkbox"
-              :checked="selectedIds.includes(item.id)"
-              @change="handleSelect(item.id)"
-            >
-          </td>
-          <td v-for="header in headers" :key="header.key" :class="`td-${header.key}`">
-            <component
-              v-if="header.component"
-              :is="header.component"
-              :item="item"
-              :header="header"
-              @action="$emit('action', $event, item)"
-            />
-            <template v-else>
-              <span v-if="header.type === 'image' && item[header.key]">
-                <img :src="item[header.key][0] || item[header.key]" :alt="item.name || 'image'" class="table-image">
-              </span>
-              <span v-else-if="header.type === 'avatar'">
-                <div class="avatar-cell">
-                  <div class="avatar">{{ item.name ? item.name.charAt(0).toUpperCase() : '?' }}</div>
-                  <span class="avatar-name">{{ item.name }}</span>
-                </div>
-              </span>
-              <span v-else-if="header.type === 'status'">
-                <button
-                  :class="['status-btn', getStatusClass(item[header.key])]"
-                  @click="$emit('toggle-status', item.id, item[header.key])"
-                >
-                  {{ getStatusText(item[header.key]) }}
-                </button>
-              </span>
-              <span v-else-if="header.type === 'status-badge'">
-                <span
-                  class="status-badge"
-                  :class="getStatusBadgeClass(item[header.key])"
-                >
-                  {{ getStatusBadgeText(item[header.key]) }}
-                </span>
-              </span>
-              <span v-else-if="header.type === 'price'">
-                <div class="price-info">
-                  <span class="current-price">¥{{ item[header.key] }}</span>
-                  <span v-if="item.originalPrice && item.originalPrice > item[header.key]" class="original-price">¥{{ item.originalPrice }}</span>
-                </div>
-              </span>
-              <span v-else-if="header.type === 'category'">
-                {{ getCategoryName(item[header.key]) }}
-              </span>
-              <span v-else-if="header.type === 'rating'">
-                ⭐ {{ item[header.key] }}
-              </span>
-              <span v-else-if="header.type === 'email'">
-                <span class="email-text">{{ item[header.key] }}</span>
-              </span>
-              <span v-else-if="header.type === 'phone'">
-                <span class="phone-text">{{ item[header.key] }}</span>
-              </span>
-              <span v-else-if="header.type === 'date'">
-                <span class="date-text">{{ formatDate(item[header.key]) }}</span>
-              </span>
-              <span v-else>
-                {{ item[header.key] }}
-              </span>
+  <el-table
+    ref="tableRef"
+    :data="data"
+    v-loading="loading"
+    stripe
+    border
+    style="width: 100%"
+    @selection-change="handleSelectionChange"
+  >
+    <!-- 选择列 -->
+    <el-table-column
+      v-if="showCheckbox"
+      type="selection"
+      width="55"
+      fixed="left"
+    />
+
+    <!-- 动态数据列 -->
+    <el-table-column
+      v-for="header in headers"
+      :key="header.key"
+      :prop="header.key"
+      :label="header.label"
+      :min-width="header.width || 120"
+      show-overflow-tooltip
+    >
+      <template #header>
+        <slot :name="`header-${header.key}`" :header="header">
+          {{ header.label }}
+        </slot>
+      </template>
+      <template #default="{ row }">
+        <slot
+          :name="`cell-${header.key}`"
+          :item="row"
+          :header="header"
+          :value="row[header.key]"
+        >
+          <component
+            :is="getCellRenderer(header)"
+            :item="row"
+            :header="header"
+            :value="row[header.key]"
+            :status-text-map="statusTextMap"
+            @action="$emit('action', $event, row)"
+          />
+        </slot>
+      </template>
+    </el-table-column>
+
+    <!-- 操作列 - 固定在右侧 -->
+    <el-table-column
+      v-if="showActions"
+      label="操作"
+      width="180"
+      fixed="right"
+      align="center"
+    >
+      <template #default="{ row }">
+        <slot name="actions" :item="row">
+          <el-button link type="primary" @click="$emit('view', row.id)">
+            查看
+          </el-button>
+          <el-button link type="primary" @click="$emit('edit', row.id)">
+            编辑
+          </el-button>
+          <!-- 删除确认：使用 el-popconfirm 防止误删 -->
+          <el-popconfirm
+            title="确定删除此项吗？"
+            confirm-button-text="确定"
+            cancel-button-text="取消"
+            @confirm="$emit('delete', row.id)"
+          >
+            <template #reference>
+              <el-button link type="danger">删除</el-button>
             </template>
-          </td>
-          <td class="td-actions" v-if="showActions">
-            <button class="btn-action btn-view" @click="$emit('view', item.id)">查看</button>
-            <button class="btn-action btn-edit" @click="$emit('edit', item.id)">编辑</button>
-            <button class="btn-action btn-delete" @click="$emit('delete', item.id)">删除</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-    <div v-if="data.length === 0" class="empty-state">
-      <div class="empty-icon">📭</div>
-      <p>暂无数据</p>
-    </div>
-  </div>
+          </el-popconfirm>
+        </slot>
+      </template>
+    </el-table-column>
+
+    <!-- 空数据提示 -->
+    <template #empty>
+      <el-empty description="暂无数据" />
+    </template>
+  </el-table>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, h, watch } from 'vue'
+
+const DefaultTextCell = {
+  name: 'DefaultTextCell',
+  props: {
+    item: { type: Object, default: null },
+    header: { type: Object, default: null },
+    value: { type: [String, Number, Boolean, Object, Array, Date, null], default: '' },
+    statusTextMap: { type: Object, default: () => ({}) }
+  },
+  setup(props) {
+    return () => {
+      const { header, value, item, statusTextMap } = props
+      if (value == null) return h('span', { class: 'text-gray-400' }, '-')
+
+      switch (header?.type) {
+        case 'avatar':
+          return h('div', { class: 'cell-avatar' }, [
+            h('el-avatar', { size: 32, src: item?.avatar }),
+            h('span', { style: 'margin-left: 8px' }, String(value))
+          ])
+        case 'email':
+          return h('a', { href: `mailto:${value}`, class: 'text-primary' }, value)
+        case 'phone':
+          return h('a', { href: `tel:${value}`, class: 'text-primary' }, value)
+        case 'status-badge': {
+          const statusText = statusTextMap[value] || value
+          const isActive = ['active', 'on', '上架', '活跃', '正常', 1, '1'].includes(value)
+          return h('el-tag', { type: isActive ? 'success' : 'info', size: 'small' }, () => statusText)
+        }
+        case 'currency':
+          return h('span', { class: 'text-price' }, `¥${Number(value).toFixed(2)}`)
+        case 'date':
+          return h('span', new Date(value).toLocaleString('zh-CN'))
+        case 'image': {
+          const imgSrc = Array.isArray(value) ? value[0] : value
+          return h('el-image', {
+            src: imgSrc,
+            style: 'width: 50px; height: 50px',
+            fit: 'cover',
+            previewSrcList: Array.isArray(value) ? value : [value],
+            previewTeleported: true
+          })
+        }
+        default:
+          return h('span', String(value))
+      }
+    }
+  }
+}
+
+const getCellRenderer = (header) => header?.component || DefaultTextCell
 
 const props = defineProps({
   data: {
@@ -119,6 +162,10 @@ const props = defineProps({
     type: Boolean,
     default: true
   },
+  loading: {
+    type: Boolean,
+    default: false
+  },
   categories: {
     type: Array,
     default: () => []
@@ -134,324 +181,60 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['select', 'select-all', 'edit', 'delete', 'view', 'toggle-status', 'action'])
+const emit = defineEmits(['select', 'select-all', 'edit', 'delete', 'view', 'toggle-status', 'action', 'selection-change'])
 
-// 是否全选
-const isAllSelected = computed(() => {
-  return props.data.length > 0 && props.selectedIds.length === props.data.length
+const tableRef = ref(null)
+
+const handleSelectionChange = (selection) => {
+  const ids = selection.map(item => item.id)
+  emit('selection-change', ids)
+  if (ids.length === props.data.length && ids.length > 0) {
+    emit('select-all', true)
+  } else if (ids.length === 0) {
+    emit('select-all', false)
+  }
+}
+
+watch(() => props.selectedIds, (newIds) => {
+  if (!tableRef.value) return
+  tableRef.value.clearSelection()
+  props.data.forEach(row => {
+    if (newIds.includes(row.id)) {
+      tableRef.value.toggleRowSelection(row, true)
+    }
+  })
+}, { immediate: true, deep: true })
+
+defineExpose({
+  clearSelection: () => tableRef.value?.clearSelection(),
+  toggleRowSelection: (row, selected) => tableRef.value?.toggleRowSelection(row, selected)
 })
-
-// 处理选择
-const handleSelect = (id) => {
-  emit('select', id)
-}
-
-// 处理全选
-const handleSelectAll = (e) => {
-  emit('select-all', e.target.checked)
-}
-
-// 获取分类名称
-const getCategoryName = (categoryId) => {
-  const category = props.categories.find(cat => cat.id === categoryId)
-  return category ? category.name : '未知分类'
-}
-
-// 获取状态样式类
-const getStatusClass = (status) => {
-  if (status === 1 || status === 'active') {
-    return 'status-on'
-  }
-  return 'status-off'
-}
-
-// 获取状态文本
-const getStatusText = (status) => {
-  return props.statusTextMap[status] || status
-}
-
-// 获取状态徽章文本
-const getStatusBadgeText = (status) => {
-  return props.statusTextMap[status] || status
-}
-
-// 获取状态徽章样式类
-const getStatusBadgeClass = (status) => {
-  if (status === 'active' || status === 'paid' || status === 'completed') {
-    return 'status-active'
-  } else if (status === 'inactive' || status === 'cancelled') {
-    return 'status-inactive'
-  } else if (status === 'pending') {
-    return 'status-pending'
-  } else if (status === 'shipped') {
-    return 'status-shipped'
-  }
-  return 'status-default'
-}
-
-// 格式化日期
-const formatDate = (dateString) => {
-  if (!dateString) return ''
-  try {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  } catch {
-    return dateString
-  }
-}
 </script>
 
 <style lang="scss" scoped>
-.custom-table {
-  width: 100%;
-  overflow-x: auto;
+.cell-avatar {
+  display: flex;
+  align-items: center;
 }
 
-.custom-table-content {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-
-  thead {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    background: #f8f9fa;
-  }
-
-  th {
-    padding: 12px 14px;
-    text-align: left;
-    font-weight: 600;
-    color: #374151;
-    border-bottom: 2px solid #e5e7eb;
-    white-space: nowrap;
-
-    &.th-checkbox {
-      width: 40px;
-      text-align: center;
-    }
-
-    &.th-actions {
-      text-align: center;
-      width: 150px;
-    }
-  }
-
-  .data-row {
-    &:hover {
-      background: #f9fafb;
-    }
-
-    td {
-      padding: 12px 14px;
-      border-bottom: 1px solid #eef2f6;
-      color: #4b5563;
-      vertical-align: middle;
-
-      &.td-checkbox {
-        text-align: center;
-      }
-
-      &.td-actions {
-        text-align: center;
-        white-space: nowrap;
-
-        .btn-action {
-          padding: 5px 10px;
-          border: none;
-          border-radius: 6px;
-          cursor: pointer;
-          font-size: 12px;
-          font-weight: 500;
-          margin: 0 2px;
-          transition: all 0.2s ease;
-
-          &.btn-view {
-            background: #eff6ff;
-            color: #1e40af;
-
-            &:hover {
-              background: #dbeafe;
-            }
-          }
-
-          &.btn-edit {
-            background: #fef3c7;
-            color: #92400e;
-
-            &:hover {
-              background: #fde68a;
-            }
-          }
-
-          &.btn-delete {
-            background: #fee2e2;
-            color: #991b1b;
-
-            &:hover {
-              background: #fecaca;
-            }
-          }
-        }
-      }
-
-      .table-image {
-        width: 60px;
-        height: 60px;
-        border-radius: 6px;
-        object-fit: cover;
-        border: 1px solid #e5e7eb;
-      }
-
-      .status-btn {
-        display: inline-block;
-        padding: 4px 10px;
-        border-radius: 12px;
-        font-size: 12px;
-        font-weight: 500;
-        border: none;
-        cursor: pointer;
-        transition: all 0.2s ease;
-
-        &.status-on {
-          background: #d1fae5;
-          color: #065f46;
-
-          &:hover {
-            background: #a7f3d0;
-          }
-        }
-
-        &.status-off {
-          background: #fee2e2;
-          color: #991b1b;
-
-          &:hover {
-            background: #fecaca;
-          }
-        }
-      }
-
-      .price-info {
-        .current-price {
-          font-weight: 600;
-          color: #dc2626;
-        }
-
-        .original-price {
-          color: #9ca3af;
-          text-decoration: line-through;
-          font-size: 12px;
-          margin-left: 6px;
-        }
-      }
-
-      .rating {
-        color: #f59e0b;
-        font-weight: 500;
-      }
-
-      .avatar-cell {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-
-        .avatar {
-          width: 36px;
-          height: 36px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: #fff;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 600;
-          font-size: 14px;
-        }
-
-        .avatar-name {
-          font-weight: 500;
-        }
-      }
-
-      .status-badge {
-        display: inline-block;
-        padding: 4px 12px;
-        border-radius: 12px;
-        font-size: 12px;
-        font-weight: 500;
-
-        &.status-active {
-          background: #d1fae5;
-          color: #065f46;
-        }
-
-        &.status-inactive {
-          background: #fee2e2;
-          color: #991b1b;
-        }
-
-        &.status-pending {
-          background: #fef3c7;
-          color: #92400e;
-        }
-
-        &.status-shipped {
-          background: #dbeafe;
-          color: #1e40af;
-        }
-
-        &.status-default {
-          background: #f3f4f6;
-          color: #374151;
-        }
-      }
-
-      .email-text {
-        color: #6b7280;
-        font-size: 13px;
-      }
-
-      .phone-text {
-        color: #4b5563;
-        font-family: 'Courier New', monospace;
-      }
-
-      .date-text {
-        color: #6b7280;
-        font-size: 13px;
-      }
-    }
+.text-primary {
+  color: var(--el-color-primary);
+  text-decoration: none;
+  &:hover {
+    text-decoration: underline;
   }
 }
 
-.checkbox {
-  cursor: pointer;
-  width: 16px;
-  height: 16px;
-  accent-color: #10b981;
+.text-price {
+  color: #f56c6c;
+  font-weight: 600;
 }
 
-.empty-state {
-  padding: 60px 20px;
-  text-align: center;
+.text-gray-400 {
   color: #9ca3af;
+}
 
-  .empty-icon {
-    font-size: 48px;
-    margin-bottom: 16px;
-  }
-
-  p {
-    font-size: 14px;
-    margin: 0;
-  }
+:deep(.el-table__empty-block) {
+  min-height: 200px;
 }
 </style>
