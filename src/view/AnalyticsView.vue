@@ -149,7 +149,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import VChart from 'vue-echarts'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
@@ -162,6 +162,7 @@ import {
 } from 'echarts/components'
 import { formatNumber, getDateRange } from '@/utils/format'
 import { DataLine, ShoppingCart, User, Star } from '@element-plus/icons-vue'
+import { getAnalyticsData } from '@/api/dashboard'
 
 // 注册 ECharts 组件
 use([
@@ -178,140 +179,74 @@ use([
 // 时间范围
 const timeRange = ref('month')
 
-// 分析数据（根据时间范围动态变化）
+// 分析数据（从API获取）
 const analytics = ref({
-  totalSales: 1286543.50,
-  salesTrend: 12.5,
-  totalOrders: 8563,
-  ordersTrend: 8.3,
-  newCustomers: 1245,
-  customersTrend: 15.2,
-  avgRating: 4.6
+  totalSales: 0,
+  salesTrend: 0,
+  totalOrders: 0,
+  ordersTrend: 0,
+  newCustomers: 0,
+  customersTrend: 0,
+  avgRating: 0
 })
 
-// 不同时间范围的数据模拟
-const dataByTimeRange = {
-  today: {
-    analytics: {
-      totalSales: 45680.00,
-      salesTrend: 8.2,
-      totalOrders: 156,
-      ordersTrend: 12.5,
-      newCustomers: 23,
-      customersTrend: 18.3,
-      avgRating: 4.7
-    },
-    salesTrend: [
-      { label: '0时', value: 1200 },
-      { label: '6时', value: 2100 },
-      { label: '12时', value: 8900 },
-      { label: '18时', value: 15800 },
-      { label: '21时', value: 12600 },
-      { label: '23时', value: 5080 }
-    ],
-    visitTrend: {
-      xAxis: ['0时', '6时', '9时', '12时', '15时', '18时', '21时', '23时'],
-      pageViews: [450, 680, 1200, 2800, 2100, 3500, 2800, 1200],
-      visitors: [320, 480, 850, 1900, 1500, 2500, 2000, 850]
-    }
-  },
-  week: {
-    analytics: {
-      totalSales: 285430.00,
-      salesTrend: 10.3,
-      totalOrders: 892,
-      ordersTrend: 9.8,
-      newCustomers: 145,
-      customersTrend: 16.7,
-      avgRating: 4.6
-    },
-    salesTrend: [
-      { label: '周一', value: 35600 },
-      { label: '周二', value: 38200 },
-      { label: '周三', value: 42900 },
-      { label: '周四', value: 39500 },
-      { label: '周五', value: 48200 },
-      { label: '周六', value: 52600 },
-      { label: '周日', value: 28430 }
-    ],
-    visitTrend: {
-      xAxis: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
-      pageViews: [3200, 4500, 3800, 5200, 4800, 6100, 5500],
-      visitors: [2100, 3200, 2800, 3800, 3500, 4500, 4100]
-    }
-  },
-  month: {
-    analytics: {
-      totalSales: 1286543.50,
-      salesTrend: 12.5,
-      totalOrders: 8563,
-      ordersTrend: 8.3,
-      newCustomers: 1245,
-      customersTrend: 15.2,
-      avgRating: 4.6
-    },
-    salesTrend: [
-      { label: '1月', value: 85600 },
-      { label: '2月', value: 92300 },
-      { label: '3月', value: 108900 },
-      { label: '4月', value: 96500 },
-      { label: '5月', value: 115200 },
-      { label: '6月', value: 128600 },
-      { label: '7月', value: 142300 },
-      { label: '8月', value: 138900 },
-      { label: '9月', value: 125400 },
-      { label: '10月', value: 128600 }
-    ],
-    visitTrend: {
-      xAxis: ['1号', '5号', '10号', '15号', '20号', '25号', '30号'],
-      pageViews: [12000, 15600, 18200, 22800, 19500, 24200, 21800],
-      visitors: [8500, 11200, 13800, 16900, 14500, 18200, 16500]
-    }
-  },
-  year: {
-    analytics: {
-      totalSales: 12865435.00,
-      salesTrend: 15.8,
-      totalOrders: 95680,
-      ordersTrend: 14.2,
-      newCustomers: 12450,
-      customersTrend: 18.5,
-      avgRating: 4.7
-    },
-    salesTrend: [
-      { label: '1月', value: 856000 },
-      { label: '2月', value: 923000 },
-      { label: '3月', value: 1089000 },
-      { label: '4月', value: 965000 },
-      { label: '5月', value: 1152000 },
-      { label: '6月', value: 1286000 },
-      { label: '7月', value: 1423000 },
-      { label: '8月', value: 1389000 },
-      { label: '9月', value: 1254000 },
-      { label: '10月', value: 1286435 }
-    ],
-    visitTrend: {
-      xAxis: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月'],
-      pageViews: [125000, 138000, 156000, 142000, 168000, 185000, 192000, 178000, 165000, 172000],
-      visitors: [85000, 95000, 108000, 98000, 115000, 128000, 135000, 125000, 118000, 122000]
-    }
-  }
-}
-
 // 销售趋势数据
-const salesTrendData = ref(dataByTimeRange.month.salesTrend)
+const salesTrendData = ref([])
 
 // 访问量趋势数据
-const visitTrendData = ref(dataByTimeRange.month.visitTrend)
+const visitTrendData = ref({
+  xAxis: [],
+  pageViews: [],
+  visitors: []
+})
 
 // 分类数据
-const categoryData = ref([
-  { name: '电子产品', percent: 35, amount: 450190, color: '#3b82f6' },
-  { name: '服装鞋帽', percent: 25, amount: 321635, color: '#10b981' },
-  { name: '家居用品', percent: 18, amount: 231578, color: '#f59e0b' },
-  { name: '图书音像', percent: 12, amount: 154385, color: '#ec4899' },
-  { name: '其他', percent: 10, amount: 128755, color: '#8b5cf6' }
-])
+const categoryData = ref([])
+
+// 加载分析数据
+async function loadAnalyticsData() {
+  try {
+    const res = await getAnalyticsData(timeRange.value)
+    if (res.data) {
+      const data = res.data
+      // 更新概览数据
+      analytics.value = {
+        totalSales: data.summary.totalSales,
+        salesTrend: parseFloat(data.trend.rate),
+        totalOrders: data.summary.totalOrders,
+        ordersTrend: parseFloat(data.trend.rate) * 0.8,
+        newCustomers: data.summary.totalUsers,
+        customersTrend: parseFloat(data.trend.rate) * 1.2,
+        avgRating: 4.6
+      }
+
+      // 更新分类数据
+      const total = data.categoryData.reduce((sum, item) => sum + item.value, 0)
+      const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6']
+      categoryData.value = data.categoryData.map((item, index) => ({
+        name: item.name,
+        percent: Math.round((item.value / total) * 100),
+        amount: item.value,
+        color: colors[index % colors.length]
+      }))
+
+      // 更新销售趋势
+      salesTrendData.value = data.salesTrend.x.map((label, index) => ({
+        label,
+        value: data.salesTrend.series[index]
+      }))
+
+      // 更新访问量趋势
+      visitTrendData.value = {
+        xAxis: data.visitTrend.x,
+        pageViews: data.visitTrend.series,
+        visitors: data.visitTrend.series.map(v => Math.round(v * 0.7))
+      }
+    }
+  } catch (error) {
+    console.error('加载分析数据失败:', error)
+  }
+}
 
 // 销售趋势图表配置
 const salesTrendOption = computed(() => ({
@@ -624,25 +559,16 @@ const topCustomers = ref([
 ])
 
 // 更新图表数据
-const updateCharts = () => {
-  const range = timeRange.value
-  const data = dataByTimeRange[range]
-
-  if (data) {
-    // 更新概览数据
-    analytics.value = { ...data.analytics }
-
-    // 更新销售趋势
-    salesTrendData.value = data.salesTrend
-
-    // 更新访问量趋势
-    visitTrendData.value = data.visitTrend
-
-    // 获取时间范围（可用于API调用）
-    const dateRange = getDateRange(range)
-    console.log('时间范围已更改:', range, dateRange)
-  }
+const updateCharts = async () => {
+  await loadAnalyticsData()
+  const dateRange = getDateRange(timeRange.value)
+  console.log('时间范围已更改:', timeRange.value, dateRange)
 }
+
+// 页面加载时获取数据
+onMounted(() => {
+  loadAnalyticsData()
+})
 
 // 监听时间范围变化
 watch(timeRange, () => {

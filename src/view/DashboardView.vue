@@ -81,7 +81,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import * as echarts from 'echarts'
-import { getDashboardStats, getDashboardChart, getDashboardRank } from '@/api/dashboard'
+import { getDashboardStats, getDashboardChart, getDashboardRank, getDashboardMapData } from '@/api/dashboard'
 
 let chart = null
 let mapChart = null
@@ -109,32 +109,8 @@ const topProducts = ref([])
 // 最近订单
 const recentOrders = ref([])
 
-const ordersByProvince = {
-  '北京市': 320,
-  '上海市': 280,
-  '广东省': 980,
-  '浙江省': 450,
-  '江苏省': 600,
-  '山东省': 420,
-  '河南省': 300,
-  '湖北省': 260,
-  '四川省': 310,
-  '河北省': 180,
-  '湖南省': 200,
-  '福建省': 150,
-  '重庆市': 90,
-  '云南省': 80,
-  '广西壮族自治区': 70,
-  '安徽省': 140,
-  '江西省': 110,
-  '辽宁省': 95,
-  '黑龙江省': 60,
-  '吉林省': 55,
-  '内蒙古自治区': 45,
-  '山西省': 50,
-  '陕西省': 65,
-  '贵州省': 40
-}
+// 地图数据（从API获取）
+const mapData = ref([])
 
 // 加载统计数据
 async function loadStats() {
@@ -168,6 +144,16 @@ async function loadRankData() {
   }
 }
 
+// 加载地图数据
+async function loadMapData() {
+  try {
+    const res = await getDashboardMapData()
+    mapData.value = res.data || []
+  } catch (error) {
+    console.error('加载地图数据失败:', error)
+  }
+}
+
 function getOption(data) {
   return {
     tooltip: { trigger: 'axis' },
@@ -197,14 +183,8 @@ function getOption(data) {
   }
 }
 
-function makeMapData() {
-  const src = typeof ordersByProvince === 'object' && ordersByProvince ? ordersByProvince : {}
-  const arr = Object.keys(src).map((name) => ({ name, value: src[name] || 0 }))
-  return arr
-}
-
 function getMapOption() {
-  const data = makeMapData()
+  const data = mapData.value
   const values = data.map(d => d.value).filter(v => typeof v === 'number')
   const min = values.length ? Math.min(...values) : 0
   const max = values.length ? Math.max(...values) : 0
@@ -302,7 +282,8 @@ onMounted(async () => {
   await Promise.all([
     loadStats(),
     loadChartData('day'),
-    loadRankData()
+    loadRankData(),
+    loadMapData()
   ])
 
   // 初始化图表

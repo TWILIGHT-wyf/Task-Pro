@@ -123,14 +123,29 @@ const DefaultTextCell = {
         case 'date':
           return h('span', new Date(value).toLocaleString('zh-CN'))
         case 'image': {
-          const imgSrc = Array.isArray(value) ? value[0] : value
-          return h('el-image', {
-            src: imgSrc,
-            style: 'width: 50px; height: 50px',
-            fit: 'cover',
-            previewSrcList: Array.isArray(value) ? value : [value],
-            previewTeleported: true
-          })
+          const previewList = Array.isArray(value)
+            ? value.filter(Boolean)
+            : value
+              ? [value]
+              : []
+
+          const imgSrc = previewList[0]
+          if (!imgSrc) return h('span', { class: 'text-gray-400' }, '无图片')
+
+          return h(
+            'el-image',
+            {
+              src: imgSrc,
+              style: 'width: 50px; height: 50px',
+              fit: 'cover',
+              lazy: true,
+              previewSrcList: previewList,
+              previewTeleported: true
+            },
+            {
+              error: () => h('span', { class: 'text-gray-400' }, '图片加载失败')
+            }
+          )
         }
         default:
           return h('span', String(value))

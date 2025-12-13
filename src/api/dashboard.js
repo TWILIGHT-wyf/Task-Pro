@@ -24,3 +24,20 @@ export function getDashboardRank() {
     method: 'get'
   })
 }
+
+// 获取地图数据
+export function getDashboardMapData() {
+  return request({
+    url: '/api/dashboard/map',
+    method: 'get'
+  })
+}
+
+// 获取报表统计数据
+export function getAnalyticsData(range = 'month') {
+  return request({
+    url: '/api/analytics',
+    method: 'get',
+    params: { range }
+  })
+}
