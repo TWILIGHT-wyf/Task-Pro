@@ -9,7 +9,7 @@
         <el-icon><Folder /></el-icon> 收起全部
       </el-button>
     </div>
-    
+
     <!-- 使用 Element Plus el-table 展示树形数据 -->
     <el-table
       ref="tableRef"
@@ -23,7 +23,7 @@
     >
       <!-- 选择列 -->
       <el-table-column type="selection" width="50" />
-      
+
       <!-- 分类名称 -->
       <el-table-column prop="name" label="分类名称" min-width="200">
         <template #default="{ row }">
@@ -36,14 +36,14 @@
           </div>
         </template>
       </el-table-column>
-      
+
       <!-- 排序 -->
       <el-table-column prop="sort" label="排序" width="80" align="center">
         <template #default="{ row }">
           <span class="sort-value">{{ row.sort }}</span>
         </template>
       </el-table-column>
-      
+
       <!-- 状态 -->
       <el-table-column prop="status" label="状态" width="100" align="center">
         <template #default="{ row }">
@@ -58,7 +58,7 @@
           />
         </template>
       </el-table-column>
-      
+
       <!-- 图标 -->
       <el-table-column prop="icon" label="图标" width="80" align="center">
         <template #default="{ row }">
@@ -81,21 +81,21 @@
           </div>
         </template>
       </el-table-column>
-      
+
       <!-- 商品数量 -->
       <el-table-column prop="productCount" label="商品数量" width="100" align="center">
         <template #default="{ row }">
           <el-tag type="primary" effect="plain">{{ row.productCount || 0 }}</el-tag>
         </template>
       </el-table-column>
-      
+
       <!-- 描述 -->
       <el-table-column prop="description" label="描述" min-width="150" show-overflow-tooltip>
         <template #default="{ row }">
           <span class="desc-text">{{ row.description || '-' }}</span>
         </template>
       </el-table-column>
-      
+
       <!-- 自定义属性 -->
       <el-table-column prop="customAttrs" label="自定义属性" min-width="150">
         <template #default="{ row }">
@@ -114,14 +114,14 @@
           <span v-else class="no-attr">-</span>
         </template>
       </el-table-column>
-      
+
       <!-- 创建时间 -->
       <el-table-column prop="createTime" label="创建时间" width="160" align="center">
         <template #default="{ row }">
           <span class="time-text">{{ row.createTime || '-' }}</span>
         </template>
       </el-table-column>
-      
+
       <!-- 操作 -->
       <el-table-column label="操作" width="150" fixed="right" align="center">
         <template #default="{ row }">
@@ -275,10 +275,10 @@ const handleToggleStatus = (id, status) => {
       font-weight: 600;
     }
   }
-  
+
   :deep(.el-table__row) {
     transition: background 0.2s ease;
-    
+
     &:hover > td {
       background: #f5f7fa !important;
     }
@@ -289,12 +289,12 @@ const handleToggleStatus = (id, status) => {
   display: flex;
   align-items: center;
   gap: 8px;
-  
+
   .category-icon-small {
     color: #409eff;
     font-size: 16px;
   }
-  
+
   .name-text {
     color: #111827;
     font-weight: 500;
@@ -335,7 +335,7 @@ const handleToggleStatus = (id, status) => {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  
+
   .attr-tag {
     margin: 0;
   }
